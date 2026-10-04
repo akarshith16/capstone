@@ -1,0 +1,41 @@
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+@theme {
+  --color-background: #0B0F19;
+  --color-surface: #151C2C;
+  --color-surfaceHighlight: #1E293B;
+  --color-primary: #3B82F6;
+  --color-secondary: #10B981;
+  --color-accent: #F59E0B;
+  --color-danger: #EF4444;
+}
+
+body {
+  background-color: var(--color-background);
+  color: #ffffff;
+  -webkit-font-smoothing: antialiased;
+}
+
+.glass-panel {
+  @apply bg-surface/80 backdrop-blur-md border border-white/10 shadow-xl;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #3B82F6;
+  border-radius: 4px;
+}
+
+/* Leaflet dark mode overrides */
+.leaflet-layer,
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out,
+.leaflet-control-attribution {
+  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+}
