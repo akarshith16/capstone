@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { initialIncidents } from '../data/mockData';
 import type { Incident, IncidentStatus } from '../data/mockData';
+import { REAL_SIVCA_STATIONS } from '../data/sivca_dataset';
 
 export type Toast = {
   id: string;
@@ -13,7 +14,7 @@ interface AgentPipelineContextType {
   incidents: Incident[];
   activeIncident: Incident | null;
   setActiveIncident: (incident: Incident | null) => void;
-  submitReport: (reportText: string, location: string, coordinates: [number, number], district: string) => void;
+  submitReport: (reportText: string, location: string, coordinates: [number, number], district: string, category: string) => void;
   resolveIncident: (id: string, resolutionType: 'warning' | 'fine' | 'seizure') => void;
   
   // Filtering state
@@ -131,7 +132,7 @@ export const AgentPipelineProvider = ({ children }: { children: ReactNode }) => 
     addToast(toastMsg, toastType);
   };
 
-  const submitReport = (reportText: string, location: string, coordinates: [number, number], district: string) => {
+  const submitReport = (reportText: string, location: string, coordinates: [number, number], district: string, category: string) => {
     const newIncident: Incident = {
       id: `REQ-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000)}`,
       timestamp: new Date().toISOString(),
@@ -142,8 +143,8 @@ export const AgentPipelineProvider = ({ children }: { children: ReactNode }) => 
       reporter: 'Citizen (You)',
       priority: 'Pending',
       status: 'New',
-      category: 'Pending Analysis',
-      agentLogs: [{ agent: 'Chulapo', action: 'Received report from citizen.', timestamp: new Date().toISOString() }],
+      category: category,
+      agentLogs: [{ agent: 'Chulapo', action: 'Received report from citizen. NLP extraction complete.', timestamp: new Date().toISOString() }],
     };
 
     setIncidents(prev => [newIncident, ...prev]);
@@ -152,22 +153,10 @@ export const AgentPipelineProvider = ({ children }: { children: ReactNode }) => 
       const readingDb = 60 + Math.floor(Math.random() * 40);
       const thresholdDb = 65;
 
-      const FIXED_SENSORS = [
-        { id: 'SN-MAD-01 (Centro)', coordinates: [40.4190, -3.7031] as [number, number] },
-        { id: 'SN-MAD-02 (Plaza España)', coordinates: [40.4233, -3.7122] as [number, number] },
-        { id: 'SN-MAD-03 (Salamanca)', coordinates: [40.4297, -3.6872] as [number, number] },
-        { id: 'SN-MAD-04 (Retiro)', coordinates: [40.4152, -3.6845] as [number, number] },
-        { id: 'SN-MAD-05 (Chamberí)', coordinates: [40.4343, -3.7042] as [number, number] },
-        { id: 'SN-MAD-06 (Cuatro Caminos)', coordinates: [40.4504, -3.7039] as [number, number] },
-        { id: 'SN-MAD-07 (Paseo del Prado)', coordinates: [40.4140, -3.6934] as [number, number] },
-        { id: 'SN-MAD-08 (Av. América)', coordinates: [40.4390, -3.6770] as [number, number] },
-        { id: 'SN-MAD-09 (Plaza Mayor)', coordinates: [40.4155, -3.7074] as [number, number] },
-        { id: 'SN-MAD-10 (La Latina)', coordinates: [40.4111, -3.7099] as [number, number] },
-      ];
-      let nearestSensor = FIXED_SENSORS[0];
+      let nearestSensor = REAL_SIVCA_STATIONS[0];
       let minDistance = 999;
-      FIXED_SENSORS.forEach(s => {
-        const dist = Math.sqrt(Math.pow(s.coordinates[0] - coordinates[0], 2) + Math.pow(s.coordinates[1] - coordinates[1], 2));
+      REAL_SIVCA_STATIONS.forEach(s => {
+        const dist = Math.sqrt(Math.pow(s.coords[0] - coordinates[0], 2) + Math.pow(s.coords[1] - coordinates[1], 2));
         if (dist < minDistance) {
           minDistance = dist;
           nearestSensor = s;
@@ -190,7 +179,7 @@ export const AgentPipelineProvider = ({ children }: { children: ReactNode }) => 
         },
         agentLogs: [
           ...newIncident.agentLogs,
-          { agent: 'Sentinel' as const, action: `Cross-referenced with ${sensorType} ${assignedSensorId}. Reading: ${readingDb}dB.`, timestamp: new Date().toISOString() }
+          { agent: 'Sentinel' as const, action: `Cross-referenced with ${sensorType} ${assignedSensorId} (${!isMobile ? nearestSensor.name : 'Patrol'}). Reading: ${readingDb}dB.`, timestamp: new Date().toISOString() }
         ]
       };
       setIncidents(prev => prev.map(inc => inc.id === verifiedIncident.id ? verifiedIncident : inc));

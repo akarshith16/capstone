@@ -3,6 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Bot, LocateFixed, Activity, Cpu, ShieldAlert, CheckCircle, X, Sparkles } from 'lucide-react';
 import { useAgentPipeline } from '../context/AgentPipelineContext';
 
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || '');
+
 const pipelineSteps = [
   { agent: 'Chulapo', icon: Bot, label: 'NLP Parsing', color: 'text-primary' },
   { agent: 'Sentinel', icon: Activity, label: 'Sensor Validation', color: 'text-secondary' },
@@ -23,14 +27,49 @@ const ChulapoChat: React.FC = () => {
     }
   }, [citizenFeedback]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reportText.trim()) return;
 
     setIsSubmitting(true);
-    setActiveStep(0);
+    setActiveStep(0); // Chulapo
 
-    const stepDuration = 2000;
+    let parsed = {
+      location: 'Current Location (Centro)',
+      district: 'Centro',
+      coordinates: [40.4180, -3.7045] as [number, number],
+      category: 'Nightlife Disturbance'
+    };
+
+    try {
+      if (import.meta.env.VITE_GEMINI_API_KEY) {
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash', generationConfig: { responseMimeType: "application/json" } });
+        const prompt = `Extract the following details from this noise complaint.
+        Text: "${reportText}"
+        Schema:
+        {
+          "district": "string (Guess the Madrid district, default to 'Centro')",
+          "location": "string (Street name or location mentioned)",
+          "category": "string (One of: Terrace Ordinance, Nightlife Disturbance, Construction, Traffic Noise, Private Party)"
+        }
+        Return ONLY valid JSON.`;
+        const result = await model.generateContent(prompt);
+        let jsonText = result.response.text();
+        jsonText = jsonText.replace(/```json/gi, '').replace(/```/g, '').trim();
+        const data = JSON.parse(jsonText);
+        
+        parsed.district = data.district || 'Centro';
+        parsed.location = data.location || 'Unknown Location';
+        parsed.category = data.category || 'Nightlife Disturbance';
+        
+        // Add some jitter for coords based on a rough map of Madrid
+        parsed.coordinates = [40.4180 + (Math.random() - 0.5) * 0.05, -3.7045 + (Math.random() - 0.5) * 0.05];
+      }
+    } catch (error) {
+      console.error('Gemini NLP failed, using fallback:', error);
+    }
+
+    const stepDuration = 1500;
     
     setTimeout(() => setActiveStep(1), stepDuration); // Sentinel
     setTimeout(() => setActiveStep(2), stepDuration * 2); // Decider
@@ -39,14 +78,14 @@ const ChulapoChat: React.FC = () => {
     setTimeout(() => {
       submitReport(
         reportText, 
-        'Current Location (Centro)', 
-        [40.4180, -3.7045], 
-        'Centro'
+        parsed.location, 
+        parsed.coordinates, 
+        parsed.district,
+        parsed.category
       );
       setReportText('');
       setIsSubmitting(false);
       setActiveStep(-1);
-      setIsOpen(false);
     }, stepDuration * 4);
   };
 

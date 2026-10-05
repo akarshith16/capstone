@@ -1,3 +1,5 @@
+import { REAL_SIVCA_STATIONS } from './sivca_dataset';
+
 export type IncidentPriority = 'Critical' | 'High' | 'Moderate' | 'Low' | 'Pending';
 export type IncidentStatus = 'New' | 'Verifying' | 'Prioritizing' | 'Routed' | 'Resolved';
 
@@ -51,25 +53,12 @@ const MADRID_DISTRICTS = [
   { name: 'Barajas', coords: [40.474, -3.578] },
 ];
 
-export const FIXED_SENSORS = [
-  { id: 'SN-MAD-01 (Centro)', coordinates: [40.4190, -3.7031] as [number, number] },
-  { id: 'SN-MAD-02 (Plaza España)', coordinates: [40.4233, -3.7122] as [number, number] },
-  { id: 'SN-MAD-03 (Salamanca)', coordinates: [40.4297, -3.6872] as [number, number] },
-  { id: 'SN-MAD-04 (Retiro)', coordinates: [40.4152, -3.6845] as [number, number] },
-  { id: 'SN-MAD-05 (Chamberí)', coordinates: [40.4343, -3.7042] as [number, number] },
-  { id: 'SN-MAD-06 (Cuatro Caminos)', coordinates: [40.4504, -3.7039] as [number, number] },
-  { id: 'SN-MAD-07 (Paseo del Prado)', coordinates: [40.4140, -3.6934] as [number, number] },
-  { id: 'SN-MAD-08 (Av. América)', coordinates: [40.4390, -3.6770] as [number, number] },
-  { id: 'SN-MAD-09 (Plaza Mayor)', coordinates: [40.4155, -3.7074] as [number, number] },
-  { id: 'SN-MAD-10 (La Latina)', coordinates: [40.4111, -3.7099] as [number, number] },
-  // Represents a subset of the 31 fixed stations
-];
-
 export const generateMockIncidents = (): Incident[] => {
   const incidents: Incident[] = [];
   const categories = ['Terrace Ordinance', 'Nightlife Disturbance', 'Construction', 'Traffic Noise', 'Private Party'];
 
-  for (let i = 1; i <= 200; i++) {
+  // Generating 1000 incidents for deep analytics based on real SIVCA stations
+  for (let i = 1; i <= 1000; i++) {
     const districtInfo = MADRID_DISTRICTS[Math.floor(Math.random() * MADRID_DISTRICTS.length)];
     const jitterLat = districtInfo.coords[0] + (Math.random() - 0.5) * 0.02;
     const jitterLng = districtInfo.coords[1] + (Math.random() - 0.5) * 0.02;
@@ -87,18 +76,17 @@ export const generateMockIncidents = (): Incident[] => {
     const readingDb = 60 + Math.floor(Math.random() * 40);
     const thresholdDb = isCritical ? 65 : 75;
     
-    // Nearest sensor logic
-    let nearestSensor = FIXED_SENSORS[0];
+    let nearestSensor = REAL_SIVCA_STATIONS[0];
     let minDistance = 999;
-    FIXED_SENSORS.forEach(s => {
-      const dist = Math.sqrt(Math.pow(s.coordinates[0] - jitterLat, 2) + Math.pow(s.coordinates[1] - jitterLng, 2));
+    REAL_SIVCA_STATIONS.forEach(s => {
+      const dist = Math.sqrt(Math.pow(s.coords[0] - jitterLat, 2) + Math.pow(s.coords[1] - jitterLng, 2));
       if (dist < minDistance) {
         minDistance = dist;
         nearestSensor = s;
       }
     });
 
-    const isMobile = minDistance > 0.015; // roughly 1.5km threshold
+    const isMobile = minDistance > 0.025;
     const assignedSensorId = isMobile ? `MOBILE-UNIT-${Math.floor(Math.random() * 16) + 1}` : nearestSensor.id;
     const sensorType = isMobile ? 'Mobile Unit' : 'Fixed SIVCA';
 
@@ -106,7 +94,7 @@ export const generateMockIncidents = (): Incident[] => {
 
     incidents.push({
       id: `REQ-${new Date().getFullYear()}-${1000 + i}`,
-      timestamp: new Date(Date.now() - Math.random() * 86400000 * 3).toISOString(), 
+      timestamp: new Date(Date.now() - Math.random() * 86400000 * 30).toISOString(), 
       location: `Calle Mock ${i}, ${districtInfo.name}`,
       district: districtInfo.name,
       coordinates: [jitterLat, jitterLng] as [number, number],
@@ -125,7 +113,7 @@ export const generateMockIncidents = (): Incident[] => {
       },
       agentLogs: [
         { agent: 'Chulapo', action: 'Ingested raw report and extracted entities.', timestamp: new Date(Date.now() - 50000).toISOString() },
-        { agent: 'Sentinel', action: `Cross-referenced with ${sensorType} ${assignedSensorId}. Reading: ${readingDb}dB.`, timestamp: new Date(Date.now() - 40000).toISOString() },
+        { agent: 'Sentinel', action: `Cross-referenced with ${sensorType} ${assignedSensorId} (${!isMobile ? nearestSensor.name : 'Patrol'}). Reading: ${readingDb}dB.`, timestamp: new Date(Date.now() - 40000).toISOString() },
         { agent: 'Decider', action: `Evaluated limits. Assigned priority: ${priority}.`, timestamp: new Date(Date.now() - 30000).toISOString() },
         { agent: 'Coordinator', action: `Routed ticket to ${routedTo} based on priority.`, timestamp: new Date(Date.now() - 20000).toISOString() },
       ]
