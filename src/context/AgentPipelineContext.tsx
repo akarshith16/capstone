@@ -34,6 +34,10 @@ interface AgentPipelineContextType {
   // Toasts
   toasts: Toast[];
   removeToast: (id: string) => void;
+
+  // Citizen Feedback
+  citizenFeedback: string | null;
+  setCitizenFeedback: (msg: string | null) => void;
 }
 
 const AgentPipelineContext = createContext<AgentPipelineContextType | undefined>(undefined);
@@ -41,6 +45,7 @@ const AgentPipelineContext = createContext<AgentPipelineContextType | undefined>
 export const AgentPipelineProvider = ({ children }: { children: ReactNode }) => {
   const [incidents, setIncidents] = useState<Incident[]>(initialIncidents);
   const [activeIncident, setActiveIncident] = useState<Incident | null>(null);
+  const [citizenFeedback, setCitizenFeedback] = useState<string | null>(null);
 
   // Filters
   const [filterDistrict, setFilterDistrict] = useState<string | 'All'>('All');
@@ -109,6 +114,9 @@ export const AgentPipelineProvider = ({ children }: { children: ReactNode }) => 
 
     setIncidents(prev => prev.map(inc => {
       if (inc.id === id) {
+        if (inc.reporter === 'Citizen (You)') {
+          setCitizenFeedback(`Update on ${inc.id}: Municipal action taken. ${toastMsg}`);
+        }
         return {
           ...inc,
           status: 'Resolved',
@@ -143,19 +151,46 @@ export const AgentPipelineProvider = ({ children }: { children: ReactNode }) => 
     setTimeout(() => {
       const readingDb = 60 + Math.floor(Math.random() * 40);
       const thresholdDb = 65;
+
+      const FIXED_SENSORS = [
+        { id: 'SN-MAD-01 (Centro)', coordinates: [40.4190, -3.7031] as [number, number] },
+        { id: 'SN-MAD-02 (Plaza España)', coordinates: [40.4233, -3.7122] as [number, number] },
+        { id: 'SN-MAD-03 (Salamanca)', coordinates: [40.4297, -3.6872] as [number, number] },
+        { id: 'SN-MAD-04 (Retiro)', coordinates: [40.4152, -3.6845] as [number, number] },
+        { id: 'SN-MAD-05 (Chamberí)', coordinates: [40.4343, -3.7042] as [number, number] },
+        { id: 'SN-MAD-06 (Cuatro Caminos)', coordinates: [40.4504, -3.7039] as [number, number] },
+        { id: 'SN-MAD-07 (Paseo del Prado)', coordinates: [40.4140, -3.6934] as [number, number] },
+        { id: 'SN-MAD-08 (Av. América)', coordinates: [40.4390, -3.6770] as [number, number] },
+        { id: 'SN-MAD-09 (Plaza Mayor)', coordinates: [40.4155, -3.7074] as [number, number] },
+        { id: 'SN-MAD-10 (La Latina)', coordinates: [40.4111, -3.7099] as [number, number] },
+      ];
+      let nearestSensor = FIXED_SENSORS[0];
+      let minDistance = 999;
+      FIXED_SENSORS.forEach(s => {
+        const dist = Math.sqrt(Math.pow(s.coordinates[0] - coordinates[0], 2) + Math.pow(s.coordinates[1] - coordinates[1], 2));
+        if (dist < minDistance) {
+          minDistance = dist;
+          nearestSensor = s;
+        }
+      });
+      const isMobile = minDistance > 0.015;
+      const assignedSensorId = isMobile ? `MOBILE-UNIT-${Math.floor(Math.random() * 16) + 1}` : nearestSensor.id;
+      const sensorType = isMobile ? 'Mobile Unit' : 'Fixed SIVCA';
+
       const verifiedIncident = {
         ...newIncident,
         status: 'Verifying' as const,
         sensorVerification: {
           verified: true,
-          sensorId: `SN-MAD-${Math.floor(Math.random() * 900) + 100}`,
+          sensorId: assignedSensorId,
           readingDb,
           thresholdDb,
-          match: readingDb > thresholdDb
+          match: readingDb > thresholdDb,
+          sensorType: sensorType as any
         },
         agentLogs: [
           ...newIncident.agentLogs,
-          { agent: 'Sentinel' as const, action: `Cross-checked sensor data. Found reading: ${readingDb}dB.`, timestamp: new Date().toISOString() }
+          { agent: 'Sentinel' as const, action: `Cross-referenced with ${sensorType} ${assignedSensorId}. Reading: ${readingDb}dB.`, timestamp: new Date().toISOString() }
         ]
       };
       setIncidents(prev => prev.map(inc => inc.id === verifiedIncident.id ? verifiedIncident : inc));
@@ -178,13 +213,15 @@ export const AgentPipelineProvider = ({ children }: { children: ReactNode }) => 
           addToast(`Critical incident detected in ${district}!`, 'critical');
         }
 
+        const routedTo = priority === 'Critical' ? 'Policía Municipal (092)' : 'DG Sostenibilidad (Environmental Inspectors)';
+
         setTimeout(() => {
           const routedIncident = {
             ...prioritizedIncident,
             status: 'Routed' as const,
             agentLogs: [
               ...prioritizedIncident.agentLogs,
-              { agent: 'Coordinator' as const, action: `Dispatched work order to Municipal Police 092.`, timestamp: new Date().toISOString() }
+              { agent: 'Coordinator' as const, action: `Routed ticket to ${routedTo} based on priority.`, timestamp: new Date().toISOString() }
             ]
           };
           setIncidents(prev => prev.map(inc => inc.id === routedIncident.id ? routedIncident : inc));
@@ -199,7 +236,8 @@ export const AgentPipelineProvider = ({ children }: { children: ReactNode }) => 
       incidents, activeIncident, setActiveIncident, submitReport, resolveIncident,
       filterDistrict, setFilterDistrict, filterStatus, setFilterStatus, 
       filterCategory, setFilterCategory, filterTime, setFilterTime,
-      filteredIncidents, isAnalyticsOpen, setIsAnalyticsOpen, toasts, removeToast
+      filteredIncidents, isAnalyticsOpen, setIsAnalyticsOpen, toasts, removeToast,
+      citizenFeedback, setCitizenFeedback
     }}>
       {children}
     </AgentPipelineContext.Provider>

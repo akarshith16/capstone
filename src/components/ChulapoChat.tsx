@@ -15,7 +15,13 @@ const ChulapoChat: React.FC = () => {
   const [reportText, setReportText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeStep, setActiveStep] = useState(-1);
-  const { submitReport } = useAgentPipeline();
+  const { submitReport, citizenFeedback, setCitizenFeedback } = useAgentPipeline();
+
+  React.useEffect(() => {
+    if (citizenFeedback) {
+      setIsOpen(true);
+    }
+  }, [citizenFeedback]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,7 +80,10 @@ const ChulapoChat: React.FC = () => {
                 </div>
               </div>
               <button 
-                onClick={() => !isSubmitting && setIsOpen(false)}
+                onClick={() => {
+                  if (!isSubmitting) setIsOpen(false);
+                  setCitizenFeedback(null);
+                }}
                 className="p-2 bg-white/5 hover:bg-white/10 rounded-full transition-colors text-gray-400 hover:text-white"
               >
                 <X className="w-4 h-4" />
@@ -88,6 +97,17 @@ const ChulapoChat: React.FC = () => {
                   Hola. Describe the noise issue, and I'll route it through the urban sensor network instantly.
                 </p>
               </div>
+
+              {citizenFeedback && (
+                <div className="bg-primary/20 rounded-2xl p-4 mb-4 border border-primary/30 inline-block rounded-tl-sm shadow-[0_0_15px_rgba(59,130,246,0.2)] w-full">
+                  <div className="flex items-start space-x-2">
+                    <CheckCircle className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                    <p className="text-sm text-gray-200 leading-relaxed font-medium">
+                      {citizenFeedback}
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="relative">
