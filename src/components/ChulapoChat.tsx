@@ -1,93 +1,80 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Bot, LocateFixed, Activity, Cpu, ShieldAlert, CheckCircle, X, Sparkles } from 'lucide-react';
+import { Send, Bot, LocateFixed, CheckCircle, X, Sparkles } from 'lucide-react';
 import { useAgentPipeline } from '../context/AgentPipelineContext';
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY || '');
 
-const pipelineSteps = [
-  { agent: 'Chulapo', icon: Bot, label: 'NLP Parsing', color: 'text-primary' },
-  { agent: 'Sentinel', icon: Activity, label: 'Sensor Validation', color: 'text-secondary' },
-  { agent: 'Decider', icon: Cpu, label: 'Priority Scoring', color: 'text-accent' },
-  { agent: 'Coordinator', icon: ShieldAlert, label: 'Routing', color: 'text-danger' },
-];
 
-const ChulapoChat: React.FC = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [reportText, setReportText] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activeStep, setActiveStep] = useState(-1);
-  const { submitReport, citizenFeedback, setCitizenFeedback } = useAgentPipeline();
 
-  React.useEffect(() => {
-    if (citizenFeedback) {
-      setIsOpen(true);
-    }
-  }, [citizenFeedback]);
+  const ChulapoChat: React.FC = () => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [reportText, setReportText] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const { submitReport, citizenFeedback, setCitizenFeedback } = useAgentPipeline();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!reportText.trim()) return;
-
-    setIsSubmitting(true);
-    setActiveStep(0); // Chulapo
-
-    let parsed = {
-      location: 'Current Location (Centro)',
-      district: 'Centro',
-      coordinates: [40.4180, -3.7045] as [number, number],
-      category: 'Nightlife Disturbance'
-    };
-
-    try {
-      if (import.meta.env.VITE_GEMINI_API_KEY) {
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash', generationConfig: { responseMimeType: "application/json" } });
-        const prompt = `Extract the following details from this noise complaint.
-        Text: "${reportText}"
-        Schema:
-        {
-          "district": "string (Guess the Madrid district, default to 'Centro')",
-          "location": "string (Street name or location mentioned)",
-          "category": "string (One of: Terrace Ordinance, Nightlife Disturbance, Construction, Traffic Noise, Private Party)"
-        }
-        Return ONLY valid JSON.`;
-        const result = await model.generateContent(prompt);
-        let jsonText = result.response.text();
-        jsonText = jsonText.replace(/```json/gi, '').replace(/```/g, '').trim();
-        const data = JSON.parse(jsonText);
-        
-        parsed.district = data.district || 'Centro';
-        parsed.location = data.location || 'Unknown Location';
-        parsed.category = data.category || 'Nightlife Disturbance';
-        
-        // Add some jitter for coords based on a rough map of Madrid
-        parsed.coordinates = [40.4180 + (Math.random() - 0.5) * 0.05, -3.7045 + (Math.random() - 0.5) * 0.05];
+    React.useEffect(() => {
+      if (citizenFeedback) {
+        setIsOpen(true);
       }
-    } catch (error) {
-      console.error('Gemini NLP failed, using fallback:', error);
-    }
+    }, [citizenFeedback]);
 
-    const stepDuration = 1500;
-    
-    setTimeout(() => setActiveStep(1), stepDuration); // Sentinel
-    setTimeout(() => setActiveStep(2), stepDuration * 2); // Decider
-    setTimeout(() => setActiveStep(3), stepDuration * 3); // Coordinator
-    
-    setTimeout(() => {
-      submitReport(
-        reportText, 
-        parsed.location, 
-        parsed.coordinates, 
-        parsed.district,
-        parsed.category
-      );
-      setReportText('');
-      setIsSubmitting(false);
-      setActiveStep(-1);
-    }, stepDuration * 4);
-  };
+    const handleSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!reportText.trim()) return;
+
+      setIsSubmitting(true);
+
+      let parsed = {
+        location: 'Current Location (Centro)',
+        district: 'Centro',
+        coordinates: [40.4180, -3.7045] as [number, number],
+        category: 'Nightlife Disturbance'
+      };
+
+      try {
+        if (import.meta.env.VITE_GEMINI_API_KEY) {
+          const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash', generationConfig: { responseMimeType: "application/json" } });
+          const prompt = `Extract the following details from this noise complaint.
+          Text: "${reportText}"
+          Schema:
+          {
+            "district": "string (Guess the Madrid district, default to 'Centro')",
+            "location": "string (Street name or location mentioned)",
+            "category": "string (One of: Terrace Ordinance, Nightlife Disturbance, Construction, Traffic Noise, Private Party)"
+          }
+          Return ONLY valid JSON.`;
+          const result = await model.generateContent(prompt);
+          let jsonText = result.response.text();
+          jsonText = jsonText.replace(/```json/gi, '').replace(/```/g, '').trim();
+          const data = JSON.parse(jsonText);
+          
+          parsed.district = data.district || 'Centro';
+          parsed.location = data.location || 'Unknown Location';
+          parsed.category = data.category || 'Nightlife Disturbance';
+          
+          parsed.coordinates = [40.4180 + (Math.random() - 0.5) * 0.05, -3.7045 + (Math.random() - 0.5) * 0.05];
+        }
+      } catch (error) {
+        console.error('Gemini NLP failed, using fallback:', error);
+      }
+
+      const stepDuration = 1500;
+      
+      setTimeout(() => {
+        submitReport(
+          reportText, 
+          parsed.location, 
+          parsed.coordinates, 
+          parsed.district,
+          parsed.category
+        );
+        setReportText('');
+        setIsSubmitting(false);
+      }, stepDuration * 4);
+    };
 
   return (
     <div className="flex flex-col items-end">
@@ -174,40 +161,15 @@ const ChulapoChat: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Agent Pipeline Visualizer */}
+                {/* Simple Loading State */}
                 {isSubmitting && (
                   <motion.div 
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
-                    className="pt-4 border-t border-white/5"
+                    className="pt-4 border-t border-white/5 flex items-center justify-center py-2"
                   >
-                    <p className="text-[10px] text-gray-400 font-medium uppercase tracking-widest text-center mb-6">Executing Multi-Agent Loop</p>
-                    <div className="flex justify-between relative px-2 mb-2">
-                      <div className="absolute top-4 left-6 right-6 h-0.5 bg-white/5 -translate-y-1/2 z-0"></div>
-                      
-                      {pipelineSteps.map((step, idx) => {
-                        const isActive = activeStep === idx;
-                        const isPast = activeStep > idx;
-                        const Icon = isPast ? CheckCircle : step.icon;
-                        
-                        return (
-                          <div key={idx} className="relative z-10 flex flex-col items-center space-y-3 w-16">
-                            <motion.div 
-                              animate={{
-                                scale: isActive ? [1, 1.2, 1] : 1,
-                                borderColor: isActive ? 'rgba(59,130,246,0.5)' : (isPast ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255,255,255,0.05)'),
-                                backgroundColor: isActive ? 'rgba(11,15,25,1)' : (isPast ? 'rgba(16, 185, 129, 0.1)' : 'rgba(21,28,44,1)')
-                              }}
-                              transition={{ repeat: isActive ? Infinity : 0, duration: 1.5 }}
-                              className={`w-8 h-8 rounded-full flex items-center justify-center border ${isActive ? 'shadow-[0_0_15px_rgba(59,130,246,0.4)]' : ''}`}
-                            >
-                              <Icon className={`w-3.5 h-3.5 ${isActive ? step.color : (isPast ? 'text-secondary' : 'text-gray-600')}`} />
-                            </motion.div>
-                            <span className={`text-[9px] font-bold uppercase tracking-wider text-center ${isActive ? 'text-white' : 'text-gray-600'}`}>{step.agent}</span>
-                          </div>
-                        )
-                      })}
-                    </div>
+                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-primary border-r-2 border-r-transparent mr-2"></div>
+                    <p className="text-xs text-gray-400 font-medium tracking-wide">Submitting report securely to the municipal network...</p>
                   </motion.div>
                 )}
               </form>
