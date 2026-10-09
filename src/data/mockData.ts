@@ -14,6 +14,7 @@ export interface Incident {
   priority: IncidentPriority;
   status: IncidentStatus;
   category: string;
+  eventContext?: string;
   sensorVerification?: {
     verified: boolean;
     sensorId: string;
@@ -57,9 +58,28 @@ export const generateMockIncidents = (): Incident[] => {
   const incidents: Incident[] = [];
   const categories = ['Terrace Ordinance', 'Nightlife Disturbance', 'Construction', 'Traffic Noise', 'Private Party'];
 
-  // Generating 1000 incidents for deep analytics based on real SIVCA stations
-  for (let i = 1; i <= 1000; i++) {
+  const EVENTS = [
+    { name: 'Real Madrid Match (Santiago Bernabéu)', district: 'Chamartín', prob: 0.15 },
+    { name: 'San Isidro Festival (Pradera)', district: 'Carabanchel', prob: 0.1 },
+    { name: 'Mad Cool Festival (Valdebebas)', district: 'Hortaleza', prob: 0.05 },
+    { name: 'Pride Parade (Chueca)', district: 'Centro', prob: 0.2 },
+    { name: 'El Rastro Market (La Latina)', district: 'Centro', prob: 0.15 },
+    { name: 'WiZink Center Concert', district: 'Salamanca', prob: 0.1 }
+  ];
+
+  // Generating 3000 incidents for deep analytics based on real SIVCA stations
+  for (let i = 1; i <= 3000; i++) {
     const districtInfo = MADRID_DISTRICTS[Math.floor(Math.random() * MADRID_DISTRICTS.length)];
+    
+    // Check if this district has a correlated event
+    let eventContext = undefined;
+    const possibleEvents = EVENTS.filter(e => e.district === districtInfo.name);
+    if (possibleEvents.length > 0) {
+      if (Math.random() < possibleEvents[0].prob) {
+        eventContext = possibleEvents[0].name;
+      }
+    }
+
     const jitterLat = districtInfo.coords[0] + (Math.random() - 0.5) * 0.02;
     const jitterLng = districtInfo.coords[1] + (Math.random() - 0.5) * 0.02;
     
@@ -92,17 +112,23 @@ export const generateMockIncidents = (): Incident[] => {
 
     const routedTo = priority === 'Critical' ? 'Policía Municipal (092)' : 'DG Sostenibilidad (Environmental Inspectors)';
 
+    let description = `Citizen reported excessive noise from a local venue in ${districtInfo.name}. Continuous disturbance.`;
+    if (eventContext) {
+      description = `Major noise disturbance correlated with ${eventContext}. Multiple reports aggregated.`;
+    }
+
     incidents.push({
       id: `REQ-${new Date().getFullYear()}-${1000 + i}`,
       timestamp: new Date(Date.now() - Math.random() * 86400000 * 30).toISOString(), 
       location: `Calle Mock ${i}, ${districtInfo.name}`,
       district: districtInfo.name,
       coordinates: [jitterLat, jitterLng] as [number, number],
-      description: `Citizen reported excessive noise from a local venue in ${districtInfo.name}. Continuous disturbance.`,
+      description,
       reporter: `Citizen-${Math.floor(Math.random() * 10000)}`,
       priority: status === 'Verifying' ? 'Pending' : priority,
       status: status,
       category: categories[Math.floor(Math.random() * categories.length)],
+      eventContext,
       sensorVerification: {
         verified: status !== 'New',
         sensorId: assignedSensorId,
