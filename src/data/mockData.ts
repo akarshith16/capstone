@@ -2,6 +2,7 @@ import { REAL_SIVCA_STATIONS } from './sivca_dataset';
 
 export type IncidentPriority = 'Critical' | 'High' | 'Moderate' | 'Low' | 'Pending';
 export type IncidentStatus = 'New' | 'Verifying' | 'Prioritizing' | 'Routed' | 'Resolved';
+export type ResolutionType = 'warning' | 'fine' | 'seizure';
 
 export interface Incident {
   id: string;
@@ -15,6 +16,7 @@ export interface Incident {
   status: IncidentStatus;
   category: string;
   eventContext?: string;
+  resolution?: ResolutionType;
   sensorVerification?: {
     verified: boolean;
     sensorId: string;
@@ -30,7 +32,7 @@ export interface Incident {
   }[];
 }
 
-const MADRID_DISTRICTS = [
+export const MADRID_DISTRICTS: { name: string; coords: [number, number] }[] = [
   { name: 'Centro', coords: [40.418, -3.703] },
   { name: 'Arganzuela', coords: [40.398, -3.693] },
   { name: 'Retiro', coords: [40.411, -3.676] },
@@ -53,6 +55,21 @@ const MADRID_DISTRICTS = [
   { name: 'San Blas-Canillejas', coords: [40.430, -3.615] },
   { name: 'Barajas', coords: [40.474, -3.578] },
 ];
+
+// Approximate: picks the district whose reference point is closest. Good enough to label a
+// map pin until real district boundaries are wired in.
+export const nearestDistrict = ([lat, lng]: [number, number]) => {
+  let nearest = MADRID_DISTRICTS[0];
+  let minDistance = Infinity;
+  MADRID_DISTRICTS.forEach(d => {
+    const dist = Math.hypot(d.coords[0] - lat, d.coords[1] - lng);
+    if (dist < minDistance) {
+      minDistance = dist;
+      nearest = d;
+    }
+  });
+  return nearest.name;
+};
 
 export const generateMockIncidents = (): Incident[] => {
   const incidents: Incident[] = [];
