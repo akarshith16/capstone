@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { initialIncidents } from '../data/mockData';
 import type { Incident, IncidentStatus, ResolutionType } from '../data/mockData';
 import { REAL_SIVCA_STATIONS } from '../data/sivca_dataset';
-import { publishIncident, subscribeToIncidents } from '../lib/pipelineSync';
+import { publishIncident, subscribeToIncidents, loadIncidents } from '../lib/pipelineSync';
 
 export type Toast = {
   id: string;
@@ -44,6 +44,9 @@ interface AgentPipelineContextType {
 
 const AgentPipelineContext = createContext<AgentPipelineContextType | undefined>(undefined);
 
+// Mock incidents are regenerated randomly on every load, so they stay local and are never synced.
+const MOCK_IDS = new Set(initialIncidents.map(inc => inc.id));
+
 export const AgentPipelineProvider = ({ children }: { children: ReactNode }) => {
   const [incidents, setIncidents] = useState<Incident[]>(initialIncidents);
   const [activeIncident, setActiveIncident] = useState<Incident | null>(null);
@@ -79,11 +82,20 @@ export const AgentPipelineProvider = ({ children }: { children: ReactNode }) => 
       : [incident, ...prev]);
   };
 
-  // Every local change goes through here so other open tabs see it too.
+  // Every local change goes through here so other tabs and devices see it too.
   const commitIncident = (incident: Incident) => {
     upsertIncident(incident);
-    publishIncident(incident);
+    if (!MOCK_IDS.has(incident.id)) publishIncident(incident);
   };
+
+  useEffect(() => {
+    loadIncidents().then(saved => {
+      if (saved.length === 0) return;
+      const savedIds = new Set(saved.map(inc => inc.id));
+      setIncidents(prev => [...saved, ...prev.filter(inc => !savedIds.has(inc.id))]
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+    });
+  }, []);
 
   useEffect(() => subscribeToIncidents(incident => {
     upsertIncident(incident);
