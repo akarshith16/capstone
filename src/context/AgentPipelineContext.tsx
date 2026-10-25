@@ -1,8 +1,9 @@
-import { createContext, useContext, useState, useMemo } from 'react';
+import { createContext, useContext, useState, useMemo, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { initialIncidents } from '../data/mockData';
-import type { Incident, IncidentStatus } from '../data/mockData';
+import type { Incident, IncidentStatus, ResolutionType } from '../data/mockData';
 import { REAL_SIVCA_STATIONS } from '../data/sivca_dataset';
+import { publishIncident, subscribeToIncidents, loadIncidents } from '../lib/pipelineSync';
 
 export type Toast = {
   id: string;
@@ -14,8 +15,8 @@ interface AgentPipelineContextType {
   incidents: Incident[];
   activeIncident: Incident | null;
   setActiveIncident: (incident: Incident | null) => void;
-  submitReport: (reportText: string, location: string, coordinates: [number, number], district: string, category: string) => void;
-  resolveIncident: (id: string, resolutionType: 'warning' | 'fine' | 'seizure') => void;
+  submitReport: (reportText: string, location: string, coordinates: [number, number], district: string, category: string, reporter?: string) => string;
+  resolveIncident: (id: string, resolutionType: ResolutionType) => void;
   
   // Filtering state
   filterDistrict: string | 'All';
@@ -42,6 +43,9 @@ interface AgentPipelineContextType {
 }
 
 const AgentPipelineContext = createContext<AgentPipelineContextType | undefined>(undefined);
+
+// Mock incidents are regenerated randomly on every load, so they stay local and are never synced.
+const MOCK_IDS = new Set(initialIncidents.map(inc => inc.id));
 
 export const AgentPipelineProvider = ({ children }: { children: ReactNode }) => {
   const [incidents, setIncidents] = useState<Incident[]>(initialIncidents);
@@ -72,6 +76,36 @@ export const AgentPipelineProvider = ({ children }: { children: ReactNode }) => 
     setToasts(prev => prev.filter(t => t.id !== id));
   };
 
+  const upsertIncident = (incident: Incident) => {
+    setIncidents(prev => prev.some(inc => inc.id === incident.id)
+      ? prev.map(inc => inc.id === incident.id ? incident : inc)
+      : [incident, ...prev]);
+  };
+
+  // Every local change goes through here so other tabs and devices see it too.
+  const commitIncident = (incident: Incident) => {
+    upsertIncident(incident);
+    if (!MOCK_IDS.has(incident.id)) publishIncident(incident);
+  };
+
+  useEffect(() => {
+    loadIncidents().then(saved => {
+      if (saved.length === 0) return;
+      const savedIds = new Set(saved.map(inc => inc.id));
+      setIncidents(prev => [...saved, ...prev.filter(inc => !savedIds.has(inc.id))]
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+    });
+  }, []);
+
+  useEffect(() => subscribeToIncidents(incident => {
+    upsertIncident(incident);
+    if (incident.status === 'New') {
+      addToast(`New resident report in ${incident.district}`, 'info');
+    } else if (incident.status === 'Prioritizing' && incident.priority === 'Critical') {
+      addToast(`Critical incident detected in ${incident.district}!`, 'critical');
+    }
+  }), []);
+
   const filteredIncidents = useMemo(() => {
     return incidents.filter(inc => {
       const matchDistrict = filterDistrict === 'All' || inc.district === filterDistrict;
@@ -90,7 +124,7 @@ export const AgentPipelineProvider = ({ children }: { children: ReactNode }) => 
     });
   }, [incidents, filterDistrict, filterStatus, filterCategory, filterTime]);
 
-  const resolveIncident = (id: string, resolutionType: 'warning' | 'fine' | 'seizure') => {
+  const resolveIncident = (id: string, resolutionType: ResolutionType) => {
     let actionLog = '';
     let toastMsg = '';
     let toastType: Toast['type'] = 'success';
@@ -113,41 +147,40 @@ export const AgentPipelineProvider = ({ children }: { children: ReactNode }) => 
         break;
     }
 
-    setIncidents(prev => prev.map(inc => {
-      if (inc.id === id) {
-        if (inc.reporter === 'Citizen (You)') {
-          setCitizenFeedback(`Update on ${inc.id}: Municipal action taken. ${toastMsg}`);
-        }
-        return {
-          ...inc,
-          status: 'Resolved',
-          agentLogs: [
-            ...inc.agentLogs,
-            { agent: 'Coordinator', action: actionLog, timestamp: new Date().toISOString() }
-          ]
-        };
-      }
-      return inc;
-    }));
+    const target = incidents.find(inc => inc.id === id);
+    if (!target) return;
+    if (target.reporter === 'Citizen (You)') {
+      setCitizenFeedback(`Update on ${target.id}: Municipal action taken. ${toastMsg}`);
+    }
+    commitIncident({
+      ...target,
+      status: 'Resolved',
+      resolution: resolutionType,
+      agentLogs: [
+        ...target.agentLogs,
+        { agent: 'Coordinator', action: actionLog, timestamp: new Date().toISOString() }
+      ]
+    });
     addToast(toastMsg, toastType);
   };
 
-  const submitReport = (reportText: string, location: string, coordinates: [number, number], district: string, category: string) => {
+  const submitReport = (reportText: string, location: string, coordinates: [number, number], district: string, category: string, reporter = 'Citizen (You)') => {
     const newIncident: Incident = {
-      id: `REQ-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000)}`,
+      // 5-digit suffix so new reports never collide with the 4-digit mock IDs
+      id: `REQ-${new Date().getFullYear()}-${10000 + Math.floor(Math.random() * 90000)}`,
       timestamp: new Date().toISOString(),
       location,
       district,
       coordinates,
       description: reportText,
-      reporter: 'Citizen (You)',
+      reporter,
       priority: 'Pending',
       status: 'New',
       category: category,
       agentLogs: [{ agent: 'Chulapo', action: 'Received report from citizen. NLP extraction complete.', timestamp: new Date().toISOString() }],
     };
 
-    setIncidents(prev => [newIncident, ...prev]);
+    commitIncident(newIncident);
 
     setTimeout(() => {
       const readingDb = 60 + Math.floor(Math.random() * 40);
@@ -182,7 +215,7 @@ export const AgentPipelineProvider = ({ children }: { children: ReactNode }) => 
           { agent: 'Sentinel' as const, action: `Cross-referenced with ${sensorType} ${assignedSensorId} (${!isMobile ? nearestSensor.name : 'Patrol'}). Reading: ${readingDb}dB.`, timestamp: new Date().toISOString() }
         ]
       };
-      setIncidents(prev => prev.map(inc => inc.id === verifiedIncident.id ? verifiedIncident : inc));
+      commitIncident(verifiedIncident);
 
       setTimeout(() => {
         const priority = readingDb > 80 ? 'Critical' : (readingDb > 65 ? 'High' : 'Moderate');
@@ -190,13 +223,12 @@ export const AgentPipelineProvider = ({ children }: { children: ReactNode }) => 
           ...verifiedIncident,
           status: 'Prioritizing' as const,
           priority: priority as 'Critical' | 'High' | 'Moderate',
-          category: 'Nightlife Disturbance',
           agentLogs: [
             ...verifiedIncident.agentLogs,
             { agent: 'Decider' as const, action: `Calculated impact score. Priority set to ${priority}.`, timestamp: new Date().toISOString() }
           ]
         };
-        setIncidents(prev => prev.map(inc => inc.id === prioritizedIncident.id ? prioritizedIncident : inc));
+        commitIncident(prioritizedIncident);
         
         if (priority === 'Critical') {
           addToast(`Critical incident detected in ${district}!`, 'critical');
@@ -213,11 +245,13 @@ export const AgentPipelineProvider = ({ children }: { children: ReactNode }) => 
               { agent: 'Coordinator' as const, action: `Routed ticket to ${routedTo} based on priority.`, timestamp: new Date().toISOString() }
             ]
           };
-          setIncidents(prev => prev.map(inc => inc.id === routedIncident.id ? routedIncident : inc));
+          commitIncident(routedIncident);
           setActiveIncident(routedIncident);
         }, 3000);
       }, 3000);
     }, 2000);
+
+    return newIncident.id;
   };
 
   return (
