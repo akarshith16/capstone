@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Check, Loader2, MapPin, ChevronLeft, Plus } from 'lucide-react';
 import type { Incident, IncidentStatus } from '../../data/mockData';
-import { REAL_SIVCA_STATIONS } from '../../data/sivca_dataset';
+import { INTAKE_FLOW, CONTEXT_RADIUS_M, SUGGESTED_ROUTE_PREFIX, formatDay } from '../../lib/triage';
 import { getNoiseCategory } from './noiseCategories';
 
 const STATUS_ORDER: IncidentStatus[] = ['New', 'Verifying', 'Prioritizing', 'Routed', 'Resolved'];
@@ -16,27 +16,31 @@ const RESOLUTION_TEXT: Record<NonNullable<Incident['resolution']>, string> = {
 const formatTime = (iso?: string) =>
   iso ? new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null;
 
+// Area context, never proof: a station hundreds of metres away cannot show what happened
+// at the resident's address, and its daily average is only published the next day.
 const sensorText = (report: Incident) => {
-  const sensor = report.sensorVerification;
-  if (!sensor) return null;
-  const station = REAL_SIVCA_STATIONS.find(s => s.id === sensor.sensorId);
-  const source = sensor.sensorType === 'Fixed SIVCA' && station ? `The sensor at ${station.name}` : 'A mobile unit';
-  return `${source} measured ${sensor.readingDb} dB (limit ${sensor.thresholdDb} dB).`;
+  const ctx = report.sensorContext;
+  if (!ctx) return INTAKE_FLOW === 'simple' ? 'Not used in this version of the app.' : null;
+  if (!ctx.withinRange) {
+    return `There is no city noise station within ${CONTEXT_RADIUS_M / 1000} km, so your report goes ahead on what you told us.`;
+  }
+  return `Nearest city noise station: ${ctx.stationName}, ${ctx.distanceM} m away. Its average for ${formatDay(ctx.coverageDate)} is published on ${formatDay(ctx.publishedOn)}. It shows how loud the area usually is, not what happened at your address.`;
 };
 
 const priorityText = (report: Incident) => {
   switch (report.priority) {
     case 'Critical': return 'Marked as urgent.';
-    case 'High': return 'Marked as high priority.';
+    case 'High': return 'Marked as high priority: neighbours nearby reported it too.';
     case 'Moderate': return 'Marked as standard priority.';
+    case 'Low': return 'Marked as low priority because it has stopped. It still helps inspectors spot repeat problems.';
     default: return null;
   }
 };
 
 const routedText = (report: Incident) => {
-  const log = report.agentLogs.find(l => l.agent === 'Coordinator' && l.action.startsWith('Routed'));
-  const team = log?.action.match(/Routed ticket to (.+?) based on/)?.[1];
-  return team ? `Assigned to ${team}.` : null;
+  const log = report.agentLogs.find(l => l.agent === 'Coordinator' && l.action.startsWith(SUGGESTED_ROUTE_PREFIX));
+  const team = log?.action.slice(SUGGESTED_ROUTE_PREFIX.length).split('. Rule:')[0];
+  return team ? `Suggested for ${team}. An officer reviews it before anyone is sent.` : null;
 };
 
 interface Stage {
@@ -54,12 +58,12 @@ const logTime = (agent: Incident['agentLogs'][number]['agent'], last = false) =>
 // One stage per pipeline status, in STATUS_ORDER.
 const STAGES: Stage[] = [
   { title: 'Report received', activeTitle: 'Sending your report', detail: r => `Ticket ${r.id}`, time: logTime('Chulapo') },
-  { title: 'Checked with noise sensors', activeTitle: 'Checking nearby noise sensors', detail: sensorText, time: logTime('Sentinel') },
+  { title: 'Area noise data added', activeTitle: 'Adding area noise data', detail: sensorText, time: logTime('Sentinel') },
   { title: 'Urgency assessed', activeTitle: 'Assessing how urgent it is', detail: priorityText, time: logTime('Decider') },
-  { title: 'Sent to responders', activeTitle: 'Choosing who should respond', detail: routedText, time: logTime('Coordinator') },
+  { title: 'Sent for officer review', activeTitle: 'Choosing who should review it', detail: routedText, time: logTime('Coordinator') },
   {
     title: 'Resolved',
-    activeTitle: 'Waiting for the team to act',
+    activeTitle: 'Waiting for an officer',
     detail: r => (r.resolution ? RESOLUTION_TEXT[r.resolution] : null),
     time: r => (r.status === 'Resolved' ? logTime('Coordinator', true)(r) : undefined),
   },

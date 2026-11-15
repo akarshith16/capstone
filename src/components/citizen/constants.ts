@@ -8,8 +8,8 @@ export const isInMadrid = ([lat, lng]: [number, number]) =>
 // Plain-language status names shown to residents.
 export const STATUS_LABELS: Record<IncidentStatus, string> = {
   New: 'Received',
-  Verifying: 'Checking',
+  Verifying: 'Adding area data',
   Prioritizing: 'Assessing',
-  Routed: 'With responders',
+  Routed: 'Waiting for review',
   Resolved: 'Resolved',
 };

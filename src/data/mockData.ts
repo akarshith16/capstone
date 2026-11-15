@@ -1,8 +1,17 @@
-import { REAL_SIVCA_STATIONS } from './sivca_dataset';
 
 export type IncidentPriority = 'Critical' | 'High' | 'Moderate' | 'Low' | 'Pending';
 export type IncidentStatus = 'New' | 'Verifying' | 'Prioritizing' | 'Routed' | 'Resolved';
 export type ResolutionType = 'warning' | 'fine' | 'seizure';
+
+export interface SensorContext {
+  stationId: string | null;
+  stationName: string | null;
+  distanceM: number | null;
+  withinRange: boolean; // a station within CONTEXT_RADIUS_M of the report
+  coverageDate: string; // YYYY-MM-DD the report falls in
+  publishedOn: string; // YYYY-MM-DD that day's SIVCA average becomes open data
+  readingLoaded: false; // the prototype holds no SIVCA readings yet
+}
 
 export interface Incident {
   id: string;
@@ -17,14 +26,8 @@ export interface Incident {
   category: string;
   eventContext?: string;
   resolution?: ResolutionType;
-  sensorVerification?: {
-    verified: boolean;
-    sensorId: string;
-    readingDb: number;
-    thresholdDb: number;
-    match: boolean;
-    sensorType: 'Fixed SIVCA' | 'Mobile Unit';
-  };
+  // Area context from the nearest SIVCA station. Never a verification: see src/lib/triage.ts.
+  sensorContext?: SensorContext;
   agentLogs: {
     agent: 'Chulapo' | 'Sentinel' | 'Decider' | 'Coordinator';
     action: string;
@@ -110,24 +113,8 @@ export const generateMockIncidents = (): Incident[] => {
     else if (randStatus < 0.2) status = 'Prioritizing';
     else if (randStatus < 0.3) status = 'New';
 
-    const readingDb = 60 + Math.floor(Math.random() * 40);
-    const thresholdDb = isCritical ? 65 : 75;
-    
-    let nearestSensor = REAL_SIVCA_STATIONS[0];
-    let minDistance = 999;
-    REAL_SIVCA_STATIONS.forEach(s => {
-      const dist = Math.sqrt(Math.pow(s.coords[0] - jitterLat, 2) + Math.pow(s.coords[1] - jitterLng, 2));
-      if (dist < minDistance) {
-        minDistance = dist;
-        nearestSensor = s;
-      }
-    });
-
-    const isMobile = minDistance > 0.025;
-    const assignedSensorId = isMobile ? `MOBILE-UNIT-${Math.floor(Math.random() * 16) + 1}` : nearestSensor.id;
-    const sensorType = isMobile ? 'Mobile Unit' : 'Fixed SIVCA';
-
-    const routedTo = priority === 'Critical' ? 'Policía Municipal (092)' : 'DG Sostenibilidad (Environmental Inspectors)';
+    const routedTo = priority === 'Critical' ? 'Policía Municipal (092)' : 'Environmental inspection service (DG Sostenibilidad y Control Ambiental)';
+    const timestamp = new Date(Date.now() - Math.random() * 86400000 * 30).toISOString();
 
     let description = `Citizen reported excessive noise from a local venue in ${districtInfo.name}. Continuous disturbance.`;
     if (eventContext) {
@@ -136,29 +123,21 @@ export const generateMockIncidents = (): Incident[] => {
 
     incidents.push({
       id: `REQ-${new Date().getFullYear()}-${1000 + i}`,
-      timestamp: new Date(Date.now() - Math.random() * 86400000 * 30).toISOString(), 
+      timestamp,
       location: `Calle Mock ${i}, ${districtInfo.name}`,
       district: districtInfo.name,
       coordinates: [jitterLat, jitterLng] as [number, number],
       description,
-      reporter: `Citizen-${Math.floor(Math.random() * 10000)}`,
+      reporter: 'Sample data',
       priority: status === 'Verifying' ? 'Pending' : priority,
       status: status,
       category: categories[Math.floor(Math.random() * categories.length)],
       eventContext,
-      sensorVerification: {
-        verified: status !== 'New',
-        sensorId: assignedSensorId,
-        readingDb,
-        thresholdDb,
-        match: readingDb > thresholdDb,
-        sensorType
-      },
       agentLogs: [
-        { agent: 'Chulapo', action: 'Ingested raw report and extracted entities.', timestamp: new Date(Date.now() - 50000).toISOString() },
-        { agent: 'Sentinel', action: `Cross-referenced with ${sensorType} ${assignedSensorId} (${!isMobile ? nearestSensor.name : 'Patrol'}). Reading: ${readingDb}dB.`, timestamp: new Date(Date.now() - 40000).toISOString() },
-        { agent: 'Decider', action: `Evaluated limits. Assigned priority: ${priority}.`, timestamp: new Date(Date.now() - 30000).toISOString() },
-        { agent: 'Coordinator', action: `Routed ticket to ${routedTo} based on priority.`, timestamp: new Date(Date.now() - 20000).toISOString() },
+        { agent: 'Chulapo', action: 'Sample case generated for the demo. Not a real report.', timestamp: new Date(Date.now() - 50000).toISOString() },
+        { agent: 'Sentinel', action: 'Sample case: no sensor context attached.', timestamp: new Date(Date.now() - 40000).toISOString() },
+        { agent: 'Decider', action: `Sample priority: ${priority}.`, timestamp: new Date(Date.now() - 30000).toISOString() },
+        { agent: 'Coordinator', action: `Sample route: ${routedTo}.`, timestamp: new Date(Date.now() - 20000).toISOString() },
       ]
     });
   }

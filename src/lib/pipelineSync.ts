@@ -23,7 +23,8 @@ interface IncidentRow {
   category: string;
   event_context: string | null;
   resolution: Incident['resolution'] | null;
-  sensor_verification: Incident['sensorVerification'] | null;
+  // Column name kept from the first version; it now stores the sensor context (see triage.ts).
+  sensor_verification: Incident['sensorContext'] | Record<string, unknown> | null;
   agent_logs: Incident['agentLogs'];
   updated_by: string | null;
 }
@@ -42,7 +43,7 @@ const toRow = (incident: Incident): IncidentRow => ({
   category: incident.category,
   event_context: incident.eventContext ?? null,
   resolution: incident.resolution ?? null,
-  sensor_verification: incident.sensorVerification ?? null,
+  sensor_verification: incident.sensorContext ?? null,
   agent_logs: incident.agentLogs,
   updated_by: CLIENT_ID,
 });
@@ -60,7 +61,10 @@ const fromRow = (row: IncidentRow): Incident => ({
   category: row.category,
   eventContext: row.event_context ?? undefined,
   resolution: row.resolution ?? undefined,
-  sensorVerification: row.sensor_verification ?? undefined,
+  // Rows from the first version stored a random reading; those are dropped, not shown.
+  sensorContext: row.sensor_verification && 'coverageDate' in row.sensor_verification
+    ? (row.sensor_verification as Incident['sensorContext'])
+    : undefined,
   agentLogs: row.agent_logs,
 });
 

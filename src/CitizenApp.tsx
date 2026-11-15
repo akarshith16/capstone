@@ -6,6 +6,7 @@ import ReportStatus from './components/citizen/ReportStatus';
 import { STATUS_LABELS } from './components/citizen/constants';
 import { useMyReports } from './components/citizen/useMyReports';
 import { getNoiseCategory } from './components/citizen/noiseCategories';
+import { INTAKE_FLOW } from './lib/triage';
 import type { Incident } from './data/mockData';
 
 type View = { name: 'home' } | { name: 'report' } | { name: 'status'; reportId: string };
@@ -64,6 +65,18 @@ function CitizenApp() {
           </button>
         </header>
 
+        <details className="mb-4 rounded-2xl border border-accent/30 bg-accent/10 px-4 py-3 text-sm text-gray-300">
+          <summary className="cursor-pointer font-semibold text-white">
+            Prototype, version of 15 Nov 2026{INTAKE_FLOW === 'simple' ? ' · simple intake' : ''}
+          </summary>
+          <ul className="mt-2 space-y-1.5 leading-relaxed">
+            <li><span className="font-semibold text-white">Real:</span> your report is saved and appears live on the city dashboard.</li>
+            <li><span className="font-semibold text-white">Context only:</span> the nearest city noise station and when its daily average is published. No readings are loaded, and they never decide the priority.</li>
+            <li><span className="font-semibold text-white">Simulated:</span> who the report is sent to. No city system is connected; an officer signs off every case.</li>
+            <li><span className="font-semibold text-white">Planned:</span> loading the published SIVCA daily data, and voice reports through Chulapo.</li>
+          </ul>
+        </details>
+
         {view.name === 'report' && (
           <ReportWizard
             onCancel={() => setView({ name: 'home' })}
@@ -90,7 +103,9 @@ function CitizenApp() {
               </span>
               <h1 className="text-[1.75rem] font-bold tracking-tight leading-tight">Is noise keeping you up?</h1>
               <p className="mt-3 text-gray-300 leading-relaxed">
-                Tell us where it's coming from. We check it against Madrid's noise sensors and send it to the team that can act.
+                {INTAKE_FLOW === 'simple'
+                  ? "Tell us where it's coming from. We pass it to the team that can act, and an officer reviews every report."
+                  : "Tell us where it's coming from. We add the area's data from the city's noise stations and pass it to the team that can act. An officer reviews every report."}
               </p>
               <button
                 onClick={() => setView({ name: 'report' })}

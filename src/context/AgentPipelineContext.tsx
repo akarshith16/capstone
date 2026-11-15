@@ -1,8 +1,9 @@
-import { createContext, useContext, useState, useMemo, useEffect } from 'react';
+import { createContext, useContext, useState, useMemo, useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { initialIncidents } from '../data/mockData';
 import type { Incident, IncidentStatus, ResolutionType } from '../data/mockData';
-import { REAL_SIVCA_STATIONS } from '../data/sivca_dataset';
+import { INTAKE_FLOW, buildSensorContext, sensorContextSummary, findNearbyReports, decidePriority, suggestRoute, SUGGESTED_ROUTE_PREFIX } from '../lib/triage';
+import type { ResidentAnswers } from '../lib/triage';
 import { publishIncident, subscribeToIncidents, loadIncidents } from '../lib/pipelineSync';
 
 export type Toast = {
@@ -15,7 +16,7 @@ interface AgentPipelineContextType {
   incidents: Incident[];
   activeIncident: Incident | null;
   setActiveIncident: (incident: Incident | null) => void;
-  submitReport: (reportText: string, location: string, coordinates: [number, number], district: string, category: string, reporter?: string) => string;
+  submitReport: (reportText: string, location: string, coordinates: [number, number], district: string, category: string, reporter?: string, answers?: ResidentAnswers) => string;
   resolveIncident: (id: string, resolutionType: ResolutionType) => void;
   
   // Filtering state
@@ -49,6 +50,9 @@ const MOCK_IDS = new Set(initialIncidents.map(inc => inc.id));
 
 export const AgentPipelineProvider = ({ children }: { children: ReactNode }) => {
   const [incidents, setIncidents] = useState<Incident[]>(initialIncidents);
+  // Latest incidents for the pipeline steps below, which run after a delay.
+  const incidentsRef = useRef(incidents);
+  useEffect(() => { incidentsRef.current = incidents; }, [incidents]);
   const [activeIncident, setActiveIncident] = useState<Incident | null>(null);
   const [citizenFeedback, setCitizenFeedback] = useState<string | null>(null);
 
@@ -131,17 +135,17 @@ export const AgentPipelineProvider = ({ children }: { children: ReactNode }) => 
 
     switch (resolutionType) {
       case 'warning':
-        actionLog = 'Issued verbal warning (Apercibimiento). Resident complied.';
+        actionLog = 'Officer recorded a verbal warning (Apercibimiento).';
         toastMsg = 'Incident resolved: Verbal warning issued.';
         toastType = 'info';
         break;
       case 'fine':
-        actionLog = 'Issued administrative fine (Acta de Infracción) for repeat offense.';
+        actionLog = 'Officer recorded an administrative fine (Acta de Infracción).';
         toastMsg = 'Incident resolved: Administrative fine issued.';
         toastType = 'success';
         break;
       case 'seizure':
-        actionLog = 'Executed equipment seizure (Decomiso Cautelar) and dispersed gathering.';
+        actionLog = 'Officer recorded an equipment seizure (Decomiso Cautelar).';
         toastMsg = 'Incident resolved: Equipment seized and event shut down.';
         toastType = 'critical';
         break;
@@ -164,11 +168,14 @@ export const AgentPipelineProvider = ({ children }: { children: ReactNode }) => 
     addToast(toastMsg, toastType);
   };
 
-  const submitReport = (reportText: string, location: string, coordinates: [number, number], district: string, category: string, reporter = 'Citizen (You)') => {
+  // The pipeline a report goes through. The delays only pace the demo; each step's
+  // rule lives in src/lib/triage.ts.
+  const submitReport = (reportText: string, location: string, coordinates: [number, number], district: string, category: string, reporter = 'Citizen (You)', answers: ResidentAnswers = { ongoing: null, recurring: null }) => {
+    const reportedAt = new Date().toISOString();
     const newIncident: Incident = {
-      // 5-digit suffix so new reports never collide with the 4-digit mock IDs
+      // 5-digit suffix so new reports never collide with the 4-digit sample IDs
       id: `REQ-${new Date().getFullYear()}-${10000 + Math.floor(Math.random() * 90000)}`,
-      timestamp: new Date().toISOString(),
+      timestamp: reportedAt,
       location,
       district,
       coordinates,
@@ -177,79 +184,64 @@ export const AgentPipelineProvider = ({ children }: { children: ReactNode }) => 
       priority: 'Pending',
       status: 'New',
       category: category,
-      agentLogs: [{ agent: 'Chulapo', action: 'Received report from citizen. NLP extraction complete.', timestamp: new Date().toISOString() }],
+      agentLogs: [{
+        agent: 'Chulapo',
+        action: INTAKE_FLOW === 'simple'
+          ? 'Received resident report (simple intake: no sensor step).'
+          : 'Received resident report.',
+        timestamp: reportedAt,
+      }],
     };
 
     commitIncident(newIncident);
 
-    setTimeout(() => {
-      const readingDb = 60 + Math.floor(Math.random() * 40);
-      const thresholdDb = 65;
-
-      let nearestSensor = REAL_SIVCA_STATIONS[0];
-      let minDistance = 999;
-      REAL_SIVCA_STATIONS.forEach(s => {
-        const dist = Math.sqrt(Math.pow(s.coords[0] - coordinates[0], 2) + Math.pow(s.coords[1] - coordinates[1], 2));
-        if (dist < minDistance) {
-          minDistance = dist;
-          nearestSensor = s;
-        }
-      });
-      const isMobile = minDistance > 0.015;
-      const assignedSensorId = isMobile ? `MOBILE-UNIT-${Math.floor(Math.random() * 16) + 1}` : nearestSensor.id;
-      const sensorType = isMobile ? 'Mobile Unit' : 'Fixed SIVCA';
-
-      const verifiedIncident = {
-        ...newIncident,
-        status: 'Verifying' as const,
-        sensorVerification: {
-          verified: true,
-          sensorId: assignedSensorId,
-          readingDb,
-          thresholdDb,
-          match: readingDb > thresholdDb,
-          sensorType: sensorType as any
-        },
+    const prioritize = (current: Incident) => {
+      const nearby = findNearbyReports(incidentsRef.current, coordinates, reportedAt, new Set([...MOCK_IDS, current.id]));
+      const { priority, reasons } = decidePriority(answers, nearby);
+      const prioritized: Incident = {
+        ...current,
+        status: 'Prioritizing',
+        priority,
         agentLogs: [
-          ...newIncident.agentLogs,
-          { agent: 'Sentinel' as const, action: `Cross-referenced with ${sensorType} ${assignedSensorId} (${!isMobile ? nearestSensor.name : 'Patrol'}). Reading: ${readingDb}dB.`, timestamp: new Date().toISOString() }
-        ]
+          ...current.agentLogs,
+          { agent: 'Decider', action: `Priority ${priority}: ${reasons.join('; ')}. Rule-based; sensor data is not an input.`, timestamp: new Date().toISOString() },
+        ],
       };
-      commitIncident(verifiedIncident);
+      commitIncident(prioritized);
 
       setTimeout(() => {
-        const priority = readingDb > 80 ? 'Critical' : (readingDb > 65 ? 'High' : 'Moderate');
-        const prioritizedIncident = {
-          ...verifiedIncident,
-          status: 'Prioritizing' as const,
-          priority: priority as 'Critical' | 'High' | 'Moderate',
+        const { team, rule } = suggestRoute(category, answers);
+        const routed: Incident = {
+          ...prioritized,
+          status: 'Routed',
           agentLogs: [
-            ...verifiedIncident.agentLogs,
-            { agent: 'Decider' as const, action: `Calculated impact score. Priority set to ${priority}.`, timestamp: new Date().toISOString() }
-          ]
+            ...prioritized.agentLogs,
+            { agent: 'Coordinator', action: `${SUGGESTED_ROUTE_PREFIX}${team}. Rule: ${rule}. Simulated: no dispatch system is connected; waiting for officer sign-off.`, timestamp: new Date().toISOString() },
+          ],
         };
-        commitIncident(prioritizedIncident);
-        
-        if (priority === 'Critical') {
-          addToast(`Critical incident detected in ${district}!`, 'critical');
-        }
+        commitIncident(routed);
+        setActiveIncident(routed);
+      }, 2500);
+    };
 
-        const routedTo = priority === 'Critical' ? 'Policía Municipal (092)' : 'DG Sostenibilidad (Environmental Inspectors)';
-
-        setTimeout(() => {
-          const routedIncident = {
-            ...prioritizedIncident,
-            status: 'Routed' as const,
-            agentLogs: [
-              ...prioritizedIncident.agentLogs,
-              { agent: 'Coordinator' as const, action: `Routed ticket to ${routedTo} based on priority.`, timestamp: new Date().toISOString() }
-            ]
-          };
-          commitIncident(routedIncident);
-          setActiveIncident(routedIncident);
-        }, 3000);
-      }, 3000);
-    }, 2000);
+    setTimeout(() => {
+      if (INTAKE_FLOW === 'simple') {
+        prioritize(newIncident);
+        return;
+      }
+      const sensorContext = buildSensorContext(coordinates, reportedAt);
+      const withContext: Incident = {
+        ...newIncident,
+        status: 'Verifying',
+        sensorContext,
+        agentLogs: [
+          ...newIncident.agentLogs,
+          { agent: 'Sentinel', action: `${sensorContextSummary(sensorContext)} No reading is loaded in this prototype.`, timestamp: new Date().toISOString() },
+        ],
+      };
+      commitIncident(withContext);
+      setTimeout(() => prioritize(withContext), 2500);
+    }, 1500);
 
     return newIncident.id;
   };

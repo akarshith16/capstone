@@ -72,7 +72,10 @@ const ReportWizard: React.FC<ReportWizardProps> = ({ onCancel, onSubmitted }) =>
       isRecurring ? 'Recurring problem.' : null,
     ].filter(Boolean).join(' ');
     const description = `${details.trim() || getNoiseCategory(category).summary} ${notes}`;
-    const reportId = submitReport(description, street.trim() || 'Pinned on map', position, district, category, RESIDENT_REPORTER);
+    const reportId = submitReport(description, street.trim() || 'Pinned on map', position, district, category, RESIDENT_REPORTER, {
+      ongoing: isOngoing,
+      recurring: isRecurring,
+    });
     onSubmitted(reportId);
   };
 

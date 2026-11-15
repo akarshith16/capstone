@@ -2,19 +2,12 @@ import React from 'react';
 import { useAgentPipeline } from '../context/AgentPipelineContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, MapPin, Activity, CheckCircle2, ShieldAlert, AlertTriangle, Shield, VolumeX, History } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { sensorContextSummary } from '../lib/triage';
 
 const TicketModal: React.FC = () => {
   const { activeIncident, setActiveIncident, resolveIncident } = useAgentPipeline();
 
   if (!activeIncident) return null;
-
-  // Generate deterministic chart data based on incident reading
-  const baseDb = activeIncident.sensorVerification?.readingDb || 60;
-  const chartData = Array.from({ length: 12 }, (_, i) => ({
-    time: `-${(11 - i) * 5}m`,
-    db: Math.max(30, Math.min(100, baseDb + (Math.sin(i) * 15) + (Math.random() * 5 - 2.5)))
-  }));
 
   const isResolved = activeIncident.status === 'Resolved';
 
@@ -85,46 +78,28 @@ const TicketModal: React.FC = () => {
                 </div>
               </div>
 
-              {/* Telemetry Card */}
+              {/* Sensor context: area data, never verification */}
               <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex justify-between items-center mb-4">
                   <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center">
-                    <VolumeX className="w-4 h-4 mr-2" /> Acoustic Telemetry
+                    <VolumeX className="w-4 h-4 mr-2" /> Sensor Context
                   </h3>
-                  {activeIncident.sensorVerification && (
+                  {activeIncident.sensorContext?.stationId && (
                     <span className="text-[10px] font-mono text-primary bg-primary/10 px-2 py-1 rounded border border-primary/20">
-                      Sensor: {activeIncident.sensorVerification.sensorId}
+                      Station: {activeIncident.sensorContext.stationId}
                     </span>
                   )}
                 </div>
-                
-                <div className="h-64 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
-                      <XAxis dataKey="time" stroke="#6b7280" fontSize={10} tickMargin={10} />
-                      <YAxis stroke="#6b7280" fontSize={10} domain={['dataMin - 5', 'dataMax + 5']} />
-                      <Tooltip 
-                        contentStyle={{ backgroundColor: '#1E293B', borderColor: '#ffffff10', borderRadius: '12px', fontSize: '12px' }}
-                        itemStyle={{ color: '#3B82F6', fontWeight: 'bold' }}
-                      />
-                      <ReferenceLine 
-                        y={activeIncident.sensorVerification?.thresholdDb || 65} 
-                        stroke="#EF4444" 
-                        strokeDasharray="4 4" 
-                        label={{ position: 'insideTopRight', value: 'Legal Limit', fill: '#EF4444', fontSize: 10 }} 
-                      />
-                      <Line 
-                        type="monotone" 
-                        dataKey="db" 
-                        stroke="#3B82F6" 
-                        strokeWidth={3}
-                        dot={{ fill: '#3B82F6', strokeWidth: 2, r: 4, stroke: '#1E293B' }} 
-                        activeDot={{ r: 6, fill: '#60A5FA', stroke: '#fff' }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
+                <p className="text-sm text-gray-300 leading-relaxed">
+                  {activeIncident.sensorContext
+                    ? sensorContextSummary(activeIncident.sensorContext)
+                    : activeIncident.agentLogs[0]?.action.includes('simple intake')
+                      ? 'Simple intake: no sensor context attached. Decide on the resident\'s report.'
+                      : 'No sensor context for this case.'}
+                </p>
+                <p className="mt-3 text-xs text-gray-500 leading-relaxed">
+                  Prototype: no SIVCA readings are loaded, and sensor data never sets the priority. A station's daily average describes the area; it does not show what happened at one address or establish a legal breach.
+                </p>
               </div>
 
             </div>

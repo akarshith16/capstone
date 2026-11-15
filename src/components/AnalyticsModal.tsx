@@ -51,7 +51,7 @@ const AnalyticsModal: React.FC = () => {
     if (eventCorrelations.length > 0) {
       insights.push({
         title: "Event-Triggered Spike Predicted",
-        desc: `High correlation detected between "${eventCorrelations[0].name}" and critical noise violations. Models forecast a 92% chance of EU benchmark breaches (65dB+) in the surrounding district.`,
+        desc: `High correlation detected between "${eventCorrelations[0].name}" and critical noise violations. Illustrative: in a pilot, this would flag a likely rise in reports in the surrounding district.`,
         confidence: 92,
         action: `Pre-deploy 2 Mobile SIVCA Patrols`,
         icon: Calendar,
@@ -63,7 +63,7 @@ const AnalyticsModal: React.FC = () => {
     if (districtData.length > 0) {
       insights.push({
         title: "Emerging Hotspot Pattern",
-        desc: `Recurring acoustic anomalies forming in ${districtData[0].name}. Time-series analysis indicates peak disturbances consistently occur between 23:00 and 02:00.`,
+        desc: `Illustrative: ${districtData[0].name} has the most reports on the map. A pilot would test whether they cluster at night.`,
         confidence: 84,
         action: `Schedule targeted environmental inspection`,
         icon: TrendingUp,
@@ -74,7 +74,7 @@ const AnalyticsModal: React.FC = () => {
 
     insights.push({
       title: "Seasonal Trend Forecast",
-      desc: `Aggregated data from 3,000+ nodes projects a 15% increase in 'Terrace Ordinance' violations over the next weekend due to weather patterns.`,
+      desc: `Illustrative: weather and weekend patterns could anticipate more terrace complaints.`,
       confidence: 78,
       action: `Issue automated digital warnings to venues`,
       icon: Clock,
@@ -249,7 +249,7 @@ const AnalyticsModal: React.FC = () => {
                     Machine Learning Forecasting
                   </h3>
                   <p className="text-gray-300 text-sm leading-relaxed max-w-2xl">
-                    Our AI models continuously process SIVCA acoustic telemetry and cross-reference it with Madrid's public event calendars. By analyzing over {incidents.length.toLocaleString()} historical nodes, we identify recurring clusters and predict future threshold breaches before they occur.
+                    Illustrative examples, not model output: this prototype has no forecasting model and no SIVCA readings. The cards show the kind of pattern a pilot would test, built from the {incidents.length.toLocaleString()} reports and sample cases on the map.
                   </p>
                 </div>
                 
@@ -281,8 +281,8 @@ const AnalyticsModal: React.FC = () => {
                         </div>
                       </div>
                       <div className="flex flex-col items-center justify-center p-6 bg-white/5 rounded-2xl border border-white/5 z-10 min-w-[140px]">
-                        <div className="text-4xl font-black text-white tracking-tighter">{insight.confidence}%</div>
-                        <div className={`text-[10px] font-bold uppercase tracking-widest mt-2 ${insight.color}`}>Confidence</div>
+                        <div className="text-lg font-black text-white tracking-tight">Illustrative</div>
+                        <div className={`text-[10px] font-bold uppercase tracking-widest mt-2 ${insight.color}`}>Not model output</div>
                       </div>
                     </motion.div>
                   ))}
