@@ -176,7 +176,7 @@ Return ONLY valid JSON. Adhere strictly to Madrid municipal zoning nomenclature.
                   }`}
                 >
                   <HelpCircle className="w-3.5 h-3.5" />
-                  <span>Anónimo (Triaje Rápido)</span>
+                  <span>Anonymous (Fast Triage)</span>
                 </button>
                 <button
                   type="button"
@@ -188,7 +188,7 @@ Return ONLY valid JSON. Adhere strictly to Madrid municipal zoning nomenclature.
                   }`}
                 >
                   <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>Denuncia Cl@ve (DNI)</span>
+                  <span>Formal Report (Cl@ve ID)</span>
                 </button>
               </div>
 
@@ -197,16 +197,16 @@ Return ONLY valid JSON. Adhere strictly to Madrid municipal zoning nomenclature.
                 <UserCheck className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
                 <p>
                   {intakeMode === 'anonymous'
-                    ? 'Modo Anónimo: Protege la identidad ciudadana para la priorización operativa y mapas de calor SIVCA.'
-                    : 'Modo Formal: Habilita autenticación Cl@ve (Ley 39/2015) para incoación de actas sancionadoras bajo OPCAT.'}
+                    ? 'Anonymous Mode: Protects citizen privacy for operational triage and SIVCA sensor heatmaps.'
+                    : 'Formal Mode: Enables Cl@ve authentication (Law 39/2015) for official municipal sanction proceedings under OPCAT.'}
                 </p>
               </div>
 
               {/* Welcome Prompt */}
               <div className="bg-white/5 rounded-2xl p-4 border border-white/5 inline-block rounded-tl-sm w-full">
                 <p className="text-xs text-gray-200 leading-relaxed">
-                  Hola. Describe la incidencia acústica (calle, local o terraza). El sistema conectará con la red de
-                  estaciones SIVCA de Madrid para contrastar el contexto zonal.
+                  Hello. Describe the noise disturbance (street, venue, or terrace). The system will cross-reference
+                  Madrid's SIVCA sensor network to evaluate zonal acoustic context.
                 </p>
               </div>
 
@@ -226,14 +226,14 @@ Return ONLY valid JSON. Adhere strictly to Madrid municipal zoning nomenclature.
                   <textarea
                     value={reportText}
                     onChange={(e) => setReportText(e.target.value)}
-                    placeholder="Ej.: 'Bar con música alta y terraza en Calle de la Palma 14 superando horario...'"
+                    placeholder="E.g., 'Bar with loud music and terrace on Calle de la Palma 14 exceeding closing hours...'"
                     className="w-full bg-black/50 border border-white/10 rounded-2xl p-3.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 min-h-[110px] resize-none custom-scrollbar transition-all"
                     disabled={isSubmitting}
                   />
                   <div className="absolute bottom-3 left-3 right-3 flex justify-between items-center">
                     <button
                       type="button"
-                      title="Utilizar ubicación actual"
+                      title="Use current location"
                       onClick={() => setReportText((prev) => (prev ? prev + ' (Plaza del Dos de Mayo, Centro)' : 'Plaza del Dos de Mayo, Centro'))}
                       className="p-1.5 text-gray-500 hover:text-primary hover:bg-primary/10 rounded-full transition-colors"
                     >
@@ -245,7 +245,7 @@ Return ONLY valid JSON. Adhere strictly to Madrid municipal zoning nomenclature.
                         disabled={!reportText.trim()}
                         className="flex items-center space-x-1.5 bg-white text-black hover:bg-gray-200 disabled:opacity-40 disabled:hover:bg-white px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shadow-lg"
                       >
-                        <span>Enviar</span>
+                        <span>Send</span>
                         <Send className="w-3 h-3" />
                       </button>
                     )}
@@ -261,7 +261,7 @@ Return ONLY valid JSON. Adhere strictly to Madrid municipal zoning nomenclature.
                   >
                     <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-primary border-r-2 border-r-transparent mr-2"></div>
                     <p className="text-[11px] text-gray-400 font-medium tracking-wide">
-                      Extrayendo entidades con Gemini NLP y consultando red SIVCA...
+                      Extracting entities with Gemini NLP and querying SIVCA network...
                     </p>
                   </motion.div>
                 )}

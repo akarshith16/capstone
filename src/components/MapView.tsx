@@ -119,16 +119,16 @@ const MapView: React.FC = () => {
             <Popup className="custom-sivca-popup">
               <div className="text-black p-1 text-xs">
                 <p className="font-bold text-cyan-800 flex items-center">
-                  <span>Estación SIVCA {station.id}</span>
+                  <span>SIVCA Station {station.id}</span>
                 </p>
                 <p className="font-semibold text-gray-900">{station.name} ({station.district})</p>
                 <p className="text-[11px] text-gray-700 mt-1">
-                  Promedio Noche (Ln): <strong>{station.historicalNightAvgDb} dBA</strong>
+                  Night Average (Ln): <strong>{station.historicalNightAvgDb} dBA</strong>
                 </p>
                 <p className="text-[10px] text-gray-500">{station.recordedPeriod}</p>
                 {station.zpaeArea && (
                   <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
-                    Zona ZPAE Protegida
+                    Protected ZPAE Area
                   </span>
                 )}
               </div>

@@ -106,7 +106,7 @@ const AnalyticsModal: React.FC = () => {
                 <h2 className="text-2xl font-black text-white tracking-tight">Intelligence Hub</h2>
                 <p className="text-xs text-primary font-bold uppercase tracking-widest mt-1 flex items-center">
                   <span className="w-2 h-2 rounded-full bg-primary animate-pulse mr-2"></span>
-                  Processing {incidents.length.toLocaleString()} Data Points • Red SIVCA datos.madrid.es (Agregados Post-Período Ld, Le, Ln)
+                  Processing {incidents.length.toLocaleString()} Data Points • SIVCA Network datos.madrid.es (Post-Period Averages Ld, Le, Ln)
                 </p>
               </div>
             </div>

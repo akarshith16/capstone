@@ -185,7 +185,7 @@ export const generateMockIncidents = (): Incident[] => {
       district: districtInfo.name,
       coordinates: [lat, lng],
       description,
-      reporter: (i % 3 === 0) ? 'Ciudadano Anónimo (Madrid)' : `Identificado Cl@ve (DNI ***${(1000 + (i % 8999))}*)`,
+      reporter: (i % 3 === 0) ? 'Anonymous Citizen (Madrid)' : `Authenticated via Cl@ve (DNI ***${(1000 + (i % 8999))}*)`,
       isAnonymous: i % 3 === 0,
       priority: status === 'Verifying' ? 'Pending' : priority,
       status,

@@ -108,14 +108,14 @@ const TicketModal: React.FC = () => {
               <div>
                 <div className="flex items-center space-x-3">
                   <h2 className="text-2xl font-bold text-white tracking-tight">
-                    Expediente Municipal de Triaje
+                    Municipal Triage Work Order
                   </h2>
                   <span className="px-2 py-0.5 text-[10px] font-mono font-bold uppercase rounded bg-primary/20 text-primary border border-primary/30">
                     [REAL ASYMMETRIC TRIAGE]
                   </span>
                   {isResolved && (
                     <span className="px-2 py-0.5 rounded text-xs bg-gray-800 text-gray-400 border border-gray-600 uppercase tracking-wider">
-                      Archivado
+                      Archived
                     </span>
                   )}
                 </div>
@@ -128,7 +128,7 @@ const TicketModal: React.FC = () => {
                   </span>
                   <span>•</span>
                   <span className="text-gray-300">
-                    {activeIncident.isAnonymous ? 'Anónimo' : 'Identificado Cl@ve'}
+                    {activeIncident.isAnonymous ? 'Anonymous' : 'Cl@ve Identified'}
                   </span>
                 </div>
               </div>
@@ -138,7 +138,7 @@ const TicketModal: React.FC = () => {
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-1.5 bg-black/40 px-3 py-1.5 rounded-xl border border-white/10 text-xs text-gray-300">
                 <Clock className="w-3.5 h-3.5 text-primary" />
-                <span>Tiempo de Revisión: {elapsedSeconds}s</span>
+                <span>Review Duration: {elapsedSeconds}s</span>
               </div>
 
               <button
@@ -151,7 +151,7 @@ const TicketModal: React.FC = () => {
                 }`}
               >
                 <Layers className="w-3.5 h-3.5" />
-                <span>{showComparison ? 'Vista Operativa' : 'Comparar vs. Sin Sensores'}</span>
+                <span>{showComparison ? 'Operational View' : 'Compare vs. Without Sensors'}</span>
               </button>
 
               <button
@@ -178,11 +178,11 @@ const TicketModal: React.FC = () => {
                     <div className="flex items-center space-x-2">
                       <Scale className="w-4 h-4 text-primary" />
                       <h3 className="text-xs font-bold text-white uppercase tracking-widest">
-                        Evaluación Comparativa: Línea Base vs. Chulapo Calma
+                        Comparative Assessment: Baseline vs. Chulapo Calma
                       </h3>
                     </div>
                     <span className="text-[10px] text-gray-400 font-mono">
-                      Impacto de Enriquecimiento SIVCA
+                      SIVCA Telemetry Enrichment Impact
                     </span>
                   </div>
 
@@ -191,7 +191,7 @@ const TicketModal: React.FC = () => {
                     <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] uppercase font-bold text-gray-400">
-                          Línea Base: Formulario Web / 311
+                          Baseline: Web Form / 311
                         </span>
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-700 text-gray-300 border border-gray-600">
                           {cmp.baselinePriority}
@@ -199,11 +199,11 @@ const TicketModal: React.FC = () => {
                       </div>
                       <p className="text-xs text-gray-400 leading-relaxed">{cmp.baselineContext}</p>
                       <div className="pt-2 border-t border-white/5 text-[11px] text-gray-400">
-                        <span className="text-gray-500 font-medium">Derivación ciega: </span>
+                        <span className="text-gray-500 font-medium">Blind routing: </span>
                         {cmp.baselineRouting}
                       </div>
                       <p className="text-[10px] text-amber-400/80 italic">
-                        Riesgo: Múltiples patrullas despachadas a llamadas duplicadas no correlacionadas.
+                        Risk: Multiple uncoordinated patrol cars dispatched to duplicate complaints.
                       </p>
                     </div>
 
@@ -211,28 +211,28 @@ const TicketModal: React.FC = () => {
                     <div className="bg-primary/10 border border-primary/30 rounded-xl p-4 space-y-2 shadow-[0_0_20px_rgba(59,130,246,0.1)]">
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] uppercase font-bold text-primary">
-                          Chulapo Calma: Contexto SIVCA + Clúster
+                          Chulapo Calma: SIVCA Context + Clustering
                         </span>
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-primary/20 text-primary border border-primary/40">
                           {activeIncident.priority}
                         </span>
                       </div>
                       <p className="text-xs text-gray-200 leading-relaxed">
-                        Correlacionado con {sv?.stationName} ({sv?.distanceMeters}m). Clúster:{' '}
-                        {sv?.neighbourClusterCount} avisos en ventana de 20 min.
+                        Correlated with {sv?.stationName} ({sv?.distanceMeters}m). Cluster:{' '}
+                        {sv?.neighbourClusterCount} reports in 20-min rolling window.
                       </p>
                       <div className="pt-2 border-t border-primary/20 text-[11px] text-gray-300">
-                        <span className="text-primary font-medium">Derivación dirigida: </span>
+                        <span className="text-primary font-medium">Targeted dispatch: </span>
                         {cmp.enrichedRouting}
                       </div>
                       <p className="text-[10px] text-emerald-400 italic">
-                        Ventaja: Despacho único pre-informado con lectura ambiental y mapa de proximidad.
+                        Benefit: Single pre-briefed response with ambient telemetry and spatial density metrics.
                       </p>
                     </div>
                   </div>
 
                   <div className="p-3 bg-white/5 rounded-xl text-xs text-gray-300 border border-white/5">
-                    <span className="font-semibold text-primary">Diagnóstico Diferencial: </span>
+                    <span className="font-semibold text-primary">Differential Diagnosis: </span>
                     {cmp.enrichmentDiffSummary}
                   </div>
                 </motion.div>
@@ -241,15 +241,15 @@ const TicketModal: React.FC = () => {
               {/* Incident Details Card */}
               <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center">
-                  <Activity className="w-4 h-4 mr-2 text-primary" /> Resumen de la Incidencia
+                  <Activity className="w-4 h-4 mr-2 text-primary" /> Incident Overview
                 </h3>
                 <div className="grid grid-cols-3 gap-4 mb-4">
                   <div>
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Categoría</p>
+                    <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Category</p>
                     <p className="text-white font-medium text-sm">{activeIncident.category}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Prioridad Asignada</p>
+                    <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Assigned Priority</p>
                     <span
                       className={`inline-flex px-2 py-1 rounded text-xs font-bold uppercase tracking-wider border ${
                         activeIncident.priority === 'Critical'
@@ -266,18 +266,18 @@ const TicketModal: React.FC = () => {
                   </div>
                   <div>
                     <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">
-                      Clúster Espaciotemporal (20 min)
+                      Spatial-Temporal Cluster (20 min)
                     </p>
                     <span className="flex items-center text-xs font-semibold text-primary">
                       <Users className="w-3.5 h-3.5 mr-1" />
-                      {sv?.neighbourClusterCount || 1} avisos en la zona
+                      {sv?.neighbourClusterCount || 1} notices in area
                     </span>
                   </div>
                 </div>
 
                 <div className="p-4 bg-black/40 rounded-xl border border-white/5">
                   <p className="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">
-                    Declaración del Ciudadano ({activeIncident.reporter})
+                    Citizen Statement ({activeIncident.reporter})
                   </p>
                   <p className="text-xs text-gray-200 italic leading-relaxed">
                     "{activeIncident.description}"
@@ -290,11 +290,11 @@ const TicketModal: React.FC = () => {
                 <div className="flex justify-between items-start">
                   <div>
                     <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center">
-                      <VolumeX className="w-4 h-4 mr-2 text-primary" /> Telemetría Contextual SIVCA
+                      <VolumeX className="w-4 h-4 mr-2 text-primary" /> SIVCA Contextual Telemetry
                     </h3>
                     <p className="text-[11px] text-gray-400 mt-1">
-                      Estación: <strong className="text-white">{sv?.stationName}</strong> ({sv?.stationId}) •
-                      Distancia: <strong className="text-primary">{sv?.distanceMeters} m</strong>
+                      Station: <strong className="text-white">{sv?.stationName}</strong> ({sv?.stationId}) •
+                      Distance: <strong className="text-primary">{sv?.distanceMeters} m</strong>
                     </p>
                   </div>
 
@@ -307,11 +307,11 @@ const TicketModal: React.FC = () => {
                       }`}
                     >
                       {sv?.isOutOfRange
-                        ? 'Candidato Flota Móvil (17 UMMA)'
-                        : `Histórico Ln: ${sv?.historicalNightAvgDb} dBA`}
+                        ? 'Mobile Fleet Candidate (17 UMMA)'
+                        : `Historical Ln: ${sv?.historicalNightAvgDb} dBA`}
                     </span>
                     <span className="text-[9px] text-gray-500">
-                      {sv?.recordedPeriod || 'datos.madrid.es (Agregado Mensual)'}
+                      {sv?.recordedPeriod || 'datos.madrid.es (Monthly Aggregate)'}
                     </span>
                   </div>
                 </div>
@@ -338,7 +338,7 @@ const TicketModal: React.FC = () => {
                         strokeDasharray="4 4"
                         label={{
                           position: 'insideTopLeft',
-                          value: 'Obj. Estratégico UE Dir 2002/49/CE (55 dBA)',
+                          value: 'EU Dir 2002/49/EC Strategic Target (55 dBA)',
                           fill: '#10B981',
                           fontSize: 9,
                         }}
@@ -350,7 +350,7 @@ const TicketModal: React.FC = () => {
                         strokeDasharray="4 4"
                         label={{
                           position: 'insideTopRight',
-                          value: `Referencia Nocturna OPCAT ZPAE (${sv?.opcatReferenceDb || 60} dBA)`,
+                          value: `Madrid OPCAT Night ZPAE Reference (${sv?.opcatReferenceDb || 60} dBA)`,
                           fill: '#EF4444',
                           fontSize: 9,
                         }}
@@ -369,11 +369,11 @@ const TicketModal: React.FC = () => {
 
                 {/* Regulatory Notice Footnote */}
                 <div className="p-3 bg-black/40 rounded-xl border border-white/5 text-[10px] text-gray-400 leading-relaxed">
-                  <strong className="text-gray-300">Encuadre Jurídico (Ley 37/2003 & OPCAT): </strong>
-                  Los 55 dB de la Directiva Europea 2002/49/CE constituyen un indicador de planificación ambiental,
-                  no un límite sancionador individual. En Madrid, las infracciones solo pueden ser constatadas
-                  fehacientemente por agentes de la Policía Municipal o Inspectores Ambientales con sonómetro tipo 1
-                  calibrado in situ. La telemetría SIVCA actúa estrictamente como señal contextual de triaje.
+                  <strong className="text-gray-300">Legal Framework Notice (Law 37/2003 & OPCAT): </strong>
+                  55 dBA under EU Directive 2002/49/EC is an environmental strategic planning target,
+                  not an individual enforcement threshold. In Madrid, infractions can only be established
+                  in person by Policía Municipal officers or Environmental Inspectors using calibrated Type 1
+                  sonometers. Ambient SIVCA telemetry serves strictly as a contextual triage indicator.
                 </div>
               </div>
             </div>
@@ -384,9 +384,9 @@ const TicketModal: React.FC = () => {
               <div className="flex-1 p-6 overflow-y-auto custom-scrollbar border-b border-white/5 space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center">
-                    <History className="w-4 h-4 mr-2 text-primary" /> Trazabilidad de Agentes
+                    <History className="w-4 h-4 mr-2 text-primary" /> Agent Audit Trail
                   </h3>
-                  <span className="text-[9px] font-mono text-gray-500">Auditoría Inmutable</span>
+                  <span className="text-[9px] font-mono text-gray-500">Immutable Log</span>
                 </div>
 
                 <div className="relative space-y-4">
@@ -421,7 +421,7 @@ const TicketModal: React.FC = () => {
               <div className="p-6 bg-surfaceHighlight/40 backdrop-blur-xl space-y-4">
                 <div className="flex items-center justify-between border-b border-white/10 pb-2">
                   <h3 className="text-xs font-bold text-white uppercase tracking-widest flex items-center">
-                    <ShieldAlert className="w-4 h-4 mr-1.5 text-primary" /> Supervisión Humana Obligatoria
+                    <ShieldAlert className="w-4 h-4 mr-1.5 text-primary" /> Mandatory Human Oversight
                   </h3>
                   <span className="text-[9px] text-primary font-mono font-bold uppercase">
                     [EU AI Act Art. 14]
@@ -434,23 +434,23 @@ const TicketModal: React.FC = () => {
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-emerald-300 flex items-center">
                         <CheckCircle2 className="w-4 h-4 mr-1.5" />
-                        Revisión de Oficial Registrada
+                        Officer Review Recorded
                       </span>
                       <span className="text-[10px] font-mono text-gray-400">
-                        Placa: {review.officerBadge}
+                        Badge: {review.officerBadge}
                       </span>
                     </div>
                     <p className="text-xs text-gray-300">
-                      Decisión:{' '}
+                      Decision:{' '}
                       <strong className="text-white uppercase">
-                        {review.decision === 'approved' ? 'Aprobado sin cambios' : 'Prioridad Modificada'}
+                        {review.decision === 'approved' ? 'Approved as Submitted' : 'Priority Modified'}
                       </strong>{' '}
-                      • Prioridad Final: <strong className="text-primary">{review.finalPriority}</strong> (en{' '}
+                      • Final Priority: <strong className="text-primary">{review.finalPriority}</strong> (in{' '}
                       {review.reviewDurationSeconds}s)
                     </p>
                     {review.overrideReason && (
                       <div className="p-2 bg-black/40 rounded text-xs text-gray-300 italic border border-white/5">
-                        Motivo del oficial: "{review.overrideReason}"
+                        Officer Justification: "{review.overrideReason}"
                       </div>
                     )}
                   </div>
@@ -459,14 +459,14 @@ const TicketModal: React.FC = () => {
                   <form onSubmit={handleOverrideSubmit} className="bg-black/50 border border-white/10 rounded-xl p-4 space-y-3">
                     <div className="flex justify-between items-center">
                       <span className="text-xs font-bold text-white flex items-center">
-                        <Edit3 className="w-3.5 h-3.5 mr-1 text-primary" /> Modificar Prioridad de Triaje
+                        <Edit3 className="w-3.5 h-3.5 mr-1 text-primary" /> Modify Triage Priority
                       </span>
                       <button
                         type="button"
                         onClick={() => setIsOverriding(false)}
                         className="text-[10px] text-gray-400 hover:text-white"
                       >
-                        Cancelar
+                        Cancel
                       </button>
                     </div>
 
@@ -489,13 +489,13 @@ const TicketModal: React.FC = () => {
 
                     <div>
                       <label className="text-[10px] text-gray-400 uppercase tracking-wider block mb-1">
-                        Justificación del Agente (Obligatoria)
+                        Officer Justification (Mandatory)
                       </label>
                       <textarea
                         required
                         value={overrideReason}
                         onChange={(e) => setOverrideReason(e.target.value)}
-                        placeholder="Ej.: 'Calle adyacente a urgencias hospitalarias / reincidencia acreditada...'"
+                        placeholder="E.g., 'Adjacent to pediatric hospital emergency entrance on Calle O Donnell / repeated venue offense...'"
                         className="w-full bg-black/60 border border-white/10 rounded-lg p-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-primary/50 min-h-[60px] resize-none"
                       />
                     </div>
@@ -505,14 +505,14 @@ const TicketModal: React.FC = () => {
                       disabled={!overrideReason.trim()}
                       className="w-full py-2 bg-primary text-black font-bold text-xs rounded-lg hover:bg-blue-400 transition-colors disabled:opacity-40"
                     >
-                      Confirmar Modificación y Derivar
+                      Confirm Modification & Dispatch
                     </button>
                   </form>
                 ) : (
                   /* Standard Officer Action Controls */
                   <div className="space-y-2">
                     <p className="text-[11px] text-gray-400">
-                      El agente Decider recomienda derivar como <strong>{activeIncident.priority}</strong> a{' '}
+                      The Decider agent recommends routing as <strong>{activeIncident.priority}</strong> to{' '}
                       <strong>{activeIncident.baselineComparison?.enrichedRouting || 'Policía Municipal'}</strong>.
                     </p>
                     <div className="grid grid-cols-2 gap-2">
@@ -522,7 +522,7 @@ const TicketModal: React.FC = () => {
                         className="py-2.5 px-3 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/30 font-bold text-xs flex items-center justify-center space-x-1.5 transition-all"
                       >
                         <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Aprobar Recomendación</span>
+                        <span>Approve Recommendation</span>
                       </button>
 
                       <button
@@ -531,7 +531,7 @@ const TicketModal: React.FC = () => {
                         className="py-2.5 px-3 rounded-xl bg-primary/20 border border-primary/40 text-primary hover:bg-primary/30 font-bold text-xs flex items-center justify-center space-x-1.5 transition-all"
                       >
                         <Edit3 className="w-3.5 h-3.5" />
-                        <span>Modificar (Override)</span>
+                        <span>Modify (Override)</span>
                       </button>
                     </div>
                   </div>
@@ -541,7 +541,7 @@ const TicketModal: React.FC = () => {
                 {!isResolved ? (
                   <div className="pt-2 border-t border-white/5 space-y-2">
                     <span className="text-[10px] text-gray-500 uppercase tracking-widest block text-center">
-                      Resolución Municipal en Destino (092 / Inspección)
+                      Municipal Resolution at Destination (092 / Inspection)
                     </span>
                     <div className="grid grid-cols-3 gap-2">
                       <button
@@ -551,8 +551,8 @@ const TicketModal: React.FC = () => {
                         }}
                         className="p-2 rounded-lg border border-secondary/30 bg-secondary/10 hover:bg-secondary/20 text-center transition-all"
                       >
-                        <p className="text-[11px] font-bold text-white">Apercibimiento</p>
-                        <p className="text-[9px] text-gray-400">Aviso verbal</p>
+                        <p className="text-[11px] font-bold text-white">Verbal Warning</p>
+                        <p className="text-[9px] text-gray-400">Formal Notice</p>
                       </button>
 
                       <button
@@ -562,8 +562,8 @@ const TicketModal: React.FC = () => {
                         }}
                         className="p-2 rounded-lg border border-accent/30 bg-accent/10 hover:bg-accent/20 text-center transition-all"
                       >
-                        <p className="text-[11px] font-bold text-white">Acta Infracción</p>
-                        <p className="text-[9px] text-gray-400">Sanción OPCAT</p>
+                        <p className="text-[11px] font-bold text-white">Admin Fine</p>
+                        <p className="text-[9px] text-gray-400">OPCAT Sanction</p>
                       </button>
 
                       <button
@@ -573,14 +573,14 @@ const TicketModal: React.FC = () => {
                         }}
                         className="p-2 rounded-lg border border-danger/30 bg-danger/10 hover:bg-danger/20 text-center transition-all"
                       >
-                        <p className="text-[11px] font-bold text-white">Decomiso</p>
-                        <p className="text-[9px] text-gray-400">Cese cautelar</p>
+                        <p className="text-[11px] font-bold text-white">Equipment Seizure</p>
+                        <p className="text-[9px] text-gray-400">Venue Shutdown</p>
                       </button>
                     </div>
                   </div>
                 ) : (
                   <div className="p-3 bg-white/5 rounded-xl text-center border border-white/5">
-                    <p className="text-xs text-gray-400">Expediente cerrado con resolución oficial documentada.</p>
+                    <p className="text-xs text-gray-400">Work order closed with documented official municipal resolution.</p>
                   </div>
                 )}
               </div>

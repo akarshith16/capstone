@@ -80,7 +80,7 @@ const TriageFeed: React.FC = () => {
                 [REAL QUEUE]
               </span>
             </div>
-            <p className="text-xs text-gray-400 mt-0.5">Cola de triaje municipal con contexto SIVCA</p>
+            <p className="text-xs text-gray-400 mt-0.5">Municipal triage queue with SIVCA context</p>
           </div>
           <div className="flex flex-col items-end">
             <span className="text-lg font-mono font-bold text-primary">
@@ -217,18 +217,18 @@ const TriageFeed: React.FC = () => {
                   {incident.sensorVerification && (
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-black/40 text-gray-300 border border-white/5">
                       {incident.sensorVerification.isOutOfRange
-                        ? '17 UMMA Móvil'
-                        : `${incident.sensorVerification.distanceMeters}m a ${incident.sensorVerification.stationId}`}
+                        ? '17 Mobile UMMA'
+                        : `${incident.sensorVerification.distanceMeters}m to ${incident.sensorVerification.stationId}`}
                     </span>
                   )}
                   {incident.sensorVerification && incident.sensorVerification.neighbourClusterCount > 1 && (
                     <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-primary/20 text-primary border border-primary/30">
-                      Clúster {incident.sensorVerification.neighbourClusterCount}x
+                      Cluster {incident.sensorVerification.neighbourClusterCount}x
                     </span>
                   )}
                   {incident.officerReview && (
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                      Oficial: {incident.officerReview.decision}
+                      Officer: {incident.officerReview.decision}
                     </span>
                   )}
                 </div>

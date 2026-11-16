@@ -33,15 +33,15 @@ const TransparencyLegend: React.FC = () => {
             className="flex items-center space-x-1.5 font-bold tracking-wide uppercase text-[11px] text-gray-300 hover:text-white transition-colors"
           >
             <Layers className="w-3.5 h-3.5 text-primary" />
-            <span>Alcance del Prototipo & Leyenda de Transparencia</span>
+            <span>Prototype Scope & Transparency Legend</span>
             {isExpanded ? <ChevronUp className="w-3.5 h-3.5 ml-1" /> : <ChevronDown className="w-3.5 h-3.5 ml-1" />}
           </button>
 
           <span className="hidden sm:inline-flex px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-            [REAL] Producción Local
+            [REAL] Local Production
           </span>
           <span className="hidden sm:inline-flex px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-            [SIMULATED] Simulación
+            [SIMULATED] Simulated
           </span>
           <span className="hidden sm:inline-flex px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
             [PLANNED] IBM watsonx
@@ -54,7 +54,7 @@ const TransparencyLegend: React.FC = () => {
           <div className="flex items-center space-x-1.5 bg-surfaceHighlight/60 px-2 py-1 rounded-xl border border-white/10">
             <Radio className="w-3 h-3 text-primary animate-pulse" />
             <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wider hidden md:inline">
-              Modo Sentinel:
+              Sentinel Mode:
             </span>
             <select
               value={verificationMode}
@@ -98,7 +98,7 @@ const TransparencyLegend: React.FC = () => {
             className="flex items-center space-x-1.5 bg-primary/20 hover:bg-primary/30 text-primary border border-primary/40 px-2.5 py-1 rounded-xl text-xs font-bold transition-all shadow-sm"
           >
             <PlayCircle className="w-3.5 h-3.5" />
-            <span>Test Suite (Apéndice C)</span>
+            <span>Test Suite (Appendix C)</span>
           </button>
         </div>
       </div>
@@ -118,14 +118,14 @@ const TransparencyLegend: React.FC = () => {
                 <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                 <div className="space-y-1">
                   <p>
-                    <strong>Cadencia de Datos Abiertos de Madrid:</strong> El portal oficial{' '}
-                    <code className="text-primary font-mono">datos.madrid.es</code> publica agregados consolidados
-                    post-período (Día 07:00–19:00, Tarde 19:00–23:00, Noche 23:00–07:00), no transmisiones en tiempo real.
+                    <strong>Madrid Open Data Cadence:</strong> The official portal{' '}
+                    <code className="text-primary font-mono">datos.madrid.es</code> publishes post-period validated aggregates
+                    (Day 07:00–19:00, Evening 19:00–23:00, Night 23:00–07:00), not real-time streaming feeds.
                   </p>
                   <p className="text-[11px] text-gray-400">
-                    <strong>Encuadre Legal:</strong> Los 55 dB de la Directiva UE 2002/49/CE son un indicador de planificación
-                    urbana, no un límite de sanción directa. Las infracciones legales solo se tipifican bajo la Ley 37/2003 y
-                    la OPCAT de Madrid mediante medición presencial oficial de Policía Municipal o Inspectores Ambientales.
+                    <strong>Legal Framework Notice:</strong> 55 dBA under EU Directive 2002/49/EC is an urban strategic planning indicator,
+                    not a direct sanction limit. Legal noise infractions are defined exclusively under Spain's Law 37/2003 and
+                    Madrid's OPCAT via certified in-person sonometric measurements by Policía Municipal or Environmental Inspectors.
                   </p>
                 </div>
               </div>
@@ -138,15 +138,15 @@ const TransparencyLegend: React.FC = () => {
                     <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                       [REAL]
                     </span>
-                    <h4 className="font-bold text-white">Ingeniería & Pipeline Operativo</h4>
+                    <h4 className="font-bold text-white">Engineering & Operational Pipeline</h4>
                   </div>
                   <ul className="space-y-1 text-gray-300 text-[11px] list-disc list-inside">
-                    <li>Extracción estructurada con Gemini 1.5 Flash (distrito, calle, categoría).</li>
-                    <li>Cálculo geodésico Haversine (en metros) a las 31 estaciones SIVCA reales.</li>
-                    <li>Consulta a registro histórico oficial Ln (23–07 h) de datos.madrid.es.</li>
-                    <li>Clustering espaciotemporal en ventana rodante de 20 min.</li>
-                    <li>Puntuación asimétrica: la telemetría eleva prioridad, nunca la reduce.</li>
-                    <li>Supervisión humana obligatoria con registro de justificación y tiempo.</li>
+                    <li>Gemini 1.5 Flash structured entity extraction (district, street, category).</li>
+                    <li>Haversine geodesic distance calculation (in meters) to all 31 real SIVCA stations.</li>
+                    <li>Direct query to official historical Ln (23–07 h) records from datos.madrid.es.</li>
+                    <li>Spatial-temporal duplicate clustering in a 20-min rolling window.</li>
+                    <li>Asymmetric scoring: sensor telemetry raises priority, never lowers it.</li>
+                    <li>Mandatory human officer sign-off with justification logging and elapsed time tracking.</li>
                   </ul>
                 </div>
 
@@ -156,13 +156,13 @@ const TransparencyLegend: React.FC = () => {
                     <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
                       [SIMULATED]
                     </span>
-                    <h4 className="font-bold text-white">Entorno de Demostración</h4>
+                    <h4 className="font-bold text-white">Demonstration Environment</h4>
                   </div>
                   <ul className="space-y-1 text-gray-300 text-[11px] list-disc list-inside">
-                    <li>Control deslizante de pico nocturno contextual [SIMULATED].</li>
-                    <li>Transiciones de estado temporizadas (Nuevo ➔ Verificando ➔ Derivado).</li>
-                    <li>Simulación de despacho a Policía Municipal (092) e Inspectores.</li>
-                    <li>Bucle cerrado de notificación al chat del ciudadano en resolución.</li>
+                    <li>Contextual night spike slider control [SIMULATED].</li>
+                    <li>Timed state transitions (New ➔ Verifying ➔ Prioritizing ➔ Routed).</li>
+                    <li>Simulated dispatch routing to Policía Municipal (092) and Inspectors.</li>
+                    <li>Closed-loop resident notification returned inside citizen chat on resolution.</li>
                   </ul>
                 </div>
 
@@ -172,13 +172,13 @@ const TransparencyLegend: React.FC = () => {
                     <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
                       [PLANNED]
                     </span>
-                    <h4 className="font-bold text-white">Pila Empresarial IBM watsonx</h4>
+                    <h4 className="font-bold text-white">IBM watsonx Enterprise Stack</h4>
                   </div>
                   <ul className="space-y-1 text-gray-300 text-[11px] list-disc list-inside">
-                    <li>watsonx.data: Lakehouse acústico con agregación continua de Madrid.</li>
-                    <li>watsonx.governance: Auditoría de deriva del modelo y trazabilidad UE.</li>
-                    <li>watsonx Orchestrate: Conexión con los sistemas de despacho 092 CAD.</li>
-                    <li>Autenticación Cl@ve oficial e identificación electrónica de denuncias.</li>
+                    <li>watsonx.data: Acoustic lakehouse with continuous Madrid telemetry ingestion.</li>
+                    <li>watsonx.governance: Model drift tracking and EU AI Act regulatory audit trails.</li>
+                    <li>watsonx Orchestrate: Direct bi-directional bridge into 092 CAD dispatch consoles.</li>
+                    <li>Official Cl@ve e-ID citizen authentication for binding administrative sanction filings.</li>
                   </ul>
                 </div>
               </div>

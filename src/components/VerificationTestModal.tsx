@@ -27,19 +27,19 @@ const VerificationTestModal: React.FC = () => {
   };
 
   const exportMarkdown = () => {
-    let md = `# CHULAPO CALMA - REGISTRO DE VERIFICACIÓN DETERMINISTA (APÉNDICE C)\n`;
-    md += `**Fecha de Ejecución:** ${suiteResult.timestamp}\n`;
-    md += `**Resultado Global:** ${suiteResult.passedTests}/${suiteResult.totalTests} pruebas superadas (${
-      suiteResult.allPassed ? '100% ÉXITO' : 'FALLOS'
+    let md = `# CHULAPO CALMA - DETERMINISTIC TRIAGE VERIFICATION LOG (APPENDIX C)\n`;
+    md += `**Execution Timestamp:** ${suiteResult.timestamp}\n`;
+    md += `**Overall Result:** ${suiteResult.passedTests}/${suiteResult.totalTests} tests passed (${
+      suiteResult.allPassed ? '100% SUCCESS' : 'FAILURES DETECTED'
     })\n\n`;
     md += `---\n\n`;
 
     suiteResult.results.forEach((r) => {
       md += `### Test #${r.id}: ${r.title}\n`;
-      md += `- **Categoría:** ${r.category}\n`;
-      md += `- **Estado:** ${r.passed ? '✓ SUPERADO' : '✗ FALLADO'}\n`;
-      md += `- **Salida Operativa:** ${r.actualOutput}\n`;
-      md += `- **Métricas Detalladas:**\n\`\`\`json\n${JSON.stringify(r.details, null, 2)}\n\`\`\`\n\n`;
+      md += `- **Category:** ${r.category}\n`;
+      md += `- **Status:** ${r.passed ? '✓ PASSED' : '✗ FAILED'}\n`;
+      md += `- **Operational Output:** ${r.actualOutput}\n`;
+      md += `- **Detailed Metrics:**\n\`\`\`json\n${JSON.stringify(r.details, null, 2)}\n\`\`\`\n\n`;
     });
 
     const blob = new Blob([md], { type: 'text/markdown;charset=utf-8;' });
@@ -85,14 +85,14 @@ const VerificationTestModal: React.FC = () => {
               <div>
                 <div className="flex items-center space-x-2">
                   <h2 className="text-xl font-bold tracking-tight">
-                    Batería de Pruebas Deterministas (Apéndice C)
+                    Deterministic Verification Suite (Appendix C)
                   </h2>
                   <span className="px-2 py-0.5 text-[10px] font-mono font-bold uppercase rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                    {suiteResult.passedTests}/{suiteResult.totalTests} PASADOS
+                    {suiteResult.passedTests}/{suiteResult.totalTests} PASSED
                   </span>
                 </div>
                 <p className="text-xs text-gray-400 mt-0.5">
-                  Validación reproducible de distancias SIVCA, imparcialidad asimétrica y supervisión humana
+                  Reproducible validation of SIVCA distances, asymmetric fairness, and human oversight
                 </p>
               </div>
             </div>
@@ -105,7 +105,7 @@ const VerificationTestModal: React.FC = () => {
                 className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold transition-all disabled:opacity-50"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isRunning ? 'animate-spin' : ''}`} />
-                <span>Re-ejecutar Pruebas</span>
+                <span>Re-run Tests</span>
               </button>
 
               <button
@@ -114,7 +114,7 @@ const VerificationTestModal: React.FC = () => {
                 className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-primary/20 hover:bg-primary/30 border border-primary/30 text-primary text-xs font-bold transition-all"
               >
                 <Download className="w-3.5 h-3.5" />
-                <span>Exportar Markdown</span>
+                <span>Export Markdown</span>
               </button>
 
               <button
@@ -141,7 +141,7 @@ const VerificationTestModal: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                 <span>
-                  Todas las 8 aserciones se evalúan de forma determinista mediante el motor local sin depender de redes externas.
+                  All 8 assertions evaluate deterministically via local engine without external network dependencies.
                 </span>
               </div>
               <span className="font-mono text-[10px] text-gray-400">

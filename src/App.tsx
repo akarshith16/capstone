@@ -39,7 +39,7 @@ function App() {
                 </span>
               </div>
               <p className="text-[10px] font-medium text-gray-400 uppercase tracking-widest">
-                Centro de Operaciones Acústicas de Madrid
+                Madrid Acoustic Operations Centre
               </p>
             </div>
           </div>
@@ -50,7 +50,7 @@ function App() {
               className="flex items-center space-x-2 text-xs font-bold text-gray-300 hover:text-white px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
             >
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>Verificación Apéndice C</span>
+              <span>Appendix C Verification</span>
             </button>
 
             <button
@@ -66,7 +66,7 @@ function App() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-secondary"></span>
               </span>
-              <span className="text-xs text-secondary font-medium tracking-wide">Red SIVCA Activa (31 Estaciones)</span>
+              <span className="text-xs text-secondary font-medium tracking-wide">Active SIVCA Network (31 Stations)</span>
             </div>
 
             <div className="h-9 w-9 rounded-full bg-surfaceHighlight border border-white/10 flex items-center justify-center text-xs font-bold text-gray-300 cursor-pointer hover:bg-white/10 transition-colors">
