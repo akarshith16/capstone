@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, useMap, GeoJSON } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, GeoJSON } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { useAgentPipeline } from '../context/AgentPipelineContext';
 import type { Incident } from '../data/mockData';
+import { REAL_SIVCA_STATIONS } from '../data/sivca_dataset';
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -34,6 +35,21 @@ const createCustomIcon = (priority: Incident['priority'], status: Incident['stat
     className: 'bg-transparent',
     iconSize: [24, 24],
     iconAnchor: [12, 12]
+  });
+};
+
+const createSivcaStationIcon = () => {
+  const html = `
+    <div class="relative flex items-center justify-center w-6 h-6">
+      <div class="absolute w-full h-full rounded-full bg-cyan-500/25 animate-pulse border border-cyan-400/50"></div>
+      <div class="relative w-3 h-3 rounded-full bg-cyan-400 border border-black shadow-[0_0_8px_rgba(6,182,212,0.9)]"></div>
+    </div>
+  `;
+  return L.divIcon({
+    html,
+    className: 'bg-transparent',
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
   });
 };
 
@@ -92,6 +108,33 @@ const MapView: React.FC = () => {
         )}
 
         {activeIncident && <MapCenterUpdater center={center} />}
+
+        {/* 31 Real Madrid SIVCA Fixed Stations */}
+        {REAL_SIVCA_STATIONS.map((station) => (
+          <Marker
+            key={station.id}
+            position={station.coords}
+            icon={createSivcaStationIcon()}
+          >
+            <Popup className="custom-sivca-popup">
+              <div className="text-black p-1 text-xs">
+                <p className="font-bold text-cyan-800 flex items-center">
+                  <span>Estación SIVCA {station.id}</span>
+                </p>
+                <p className="font-semibold text-gray-900">{station.name} ({station.district})</p>
+                <p className="text-[11px] text-gray-700 mt-1">
+                  Promedio Noche (Ln): <strong>{station.historicalNightAvgDb} dBA</strong>
+                </p>
+                <p className="text-[10px] text-gray-500">{station.recordedPeriod}</p>
+                {station.zpaeArea && (
+                  <span className="inline-block mt-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                    Zona ZPAE Protegida
+                  </span>
+                )}
+              </div>
+            </Popup>
+          </Marker>
+        ))}
 
         {filteredIncidents.map((incident) => (
           <Marker

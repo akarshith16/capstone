@@ -51,9 +51,9 @@ const AnalyticsModal: React.FC = () => {
     if (eventCorrelations.length > 0) {
       insights.push({
         title: "Event-Triggered Spike Predicted",
-        desc: `High correlation detected between "${eventCorrelations[0].name}" and critical noise violations. Models forecast a 92% chance of EU benchmark breaches (65dB+) in the surrounding district.`,
+        desc: `High correlation detected between "${eventCorrelations[0].name}" and elevated acoustic activity. Models forecast a 92% probability of contextual sound levels exceeding Madrid OPCAT night reference guidelines (65 dBA+) in the surrounding district.`,
         confidence: 92,
-        action: `Pre-deploy 2 Mobile SIVCA Patrols`,
+        action: `Pre-deploy 2 Mobile SIVCA Patrols (17 UMMA fleet)`,
         icon: Calendar,
         color: 'text-danger',
         bg: 'bg-danger/10'
@@ -106,7 +106,7 @@ const AnalyticsModal: React.FC = () => {
                 <h2 className="text-2xl font-black text-white tracking-tight">Intelligence Hub</h2>
                 <p className="text-xs text-primary font-bold uppercase tracking-widest mt-1 flex items-center">
                   <span className="w-2 h-2 rounded-full bg-primary animate-pulse mr-2"></span>
-                  Processing {incidents.length.toLocaleString()} Data Points
+                  Processing {incidents.length.toLocaleString()} Data Points • Red SIVCA datos.madrid.es (Agregados Post-Período Ld, Le, Ln)
                 </p>
               </div>
             </div>
@@ -249,7 +249,7 @@ const AnalyticsModal: React.FC = () => {
                     Machine Learning Forecasting
                   </h3>
                   <p className="text-gray-300 text-sm leading-relaxed max-w-2xl">
-                    Our AI models continuously process SIVCA acoustic telemetry and cross-reference it with Madrid's public event calendars. By analyzing over {incidents.length.toLocaleString()} historical nodes, we identify recurring clusters and predict future threshold breaches before they occur.
+                    Our AI models continuously process SIVCA acoustic telemetry and cross-reference it with Madrid's public event calendars. By analyzing over {incidents.length.toLocaleString()} historical nodes, we identify recurring clusters and predict future acoustic saturation zones and recurring hotspots under Madrid's OPCAT framework.
                   </p>
                 </div>
                 

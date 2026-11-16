@@ -74,8 +74,13 @@ const TriageFeed: React.FC = () => {
       <div className="p-5 border-b border-white/10 bg-gradient-to-b from-surfaceHighlight/80 to-transparent">
         <div className="flex justify-between items-center mb-5">
           <div>
-            <h2 className="text-lg font-bold tracking-tight text-white">Live Feed</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Prioritized operations queue</p>
+            <div className="flex items-center space-x-2">
+              <h2 className="text-lg font-bold tracking-tight text-white">Live Feed</h2>
+              <span className="px-1.5 py-0.5 text-[9px] font-mono font-bold uppercase rounded bg-primary/20 text-primary border border-primary/30">
+                [REAL QUEUE]
+              </span>
+            </div>
+            <p className="text-xs text-gray-400 mt-0.5">Cola de triaje municipal con contexto SIVCA</p>
           </div>
           <div className="flex flex-col items-end">
             <span className="text-lg font-mono font-bold text-primary">
@@ -203,9 +208,30 @@ const TriageFeed: React.FC = () => {
                   </span>
                 </div>
                 
-                <p className={`text-sm leading-relaxed mb-4 line-clamp-2 ${isResolved ? 'text-gray-500' : 'text-gray-300'}`}>
+                <p className={`text-sm leading-relaxed mb-3 line-clamp-2 ${isResolved ? 'text-gray-500' : 'text-gray-300'}`}>
                   {incident.description}
                 </p>
+
+                {/* Telemetry & Cluster Context Chips */}
+                <div className="flex flex-wrap items-center gap-1.5 mb-3">
+                  {incident.sensorVerification && (
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-black/40 text-gray-300 border border-white/5">
+                      {incident.sensorVerification.isOutOfRange
+                        ? '17 UMMA Móvil'
+                        : `${incident.sensorVerification.distanceMeters}m a ${incident.sensorVerification.stationId}`}
+                    </span>
+                  )}
+                  {incident.sensorVerification && incident.sensorVerification.neighbourClusterCount > 1 && (
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-primary/20 text-primary border border-primary/30">
+                      Clúster {incident.sensorVerification.neighbourClusterCount}x
+                    </span>
+                  )}
+                  {incident.officerReview && (
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      Oficial: {incident.officerReview.decision}
+                    </span>
+                  )}
+                </div>
                 
                 <div className="flex justify-between items-center text-xs text-gray-500 pt-3 border-t border-white/5">
                   <div className="flex items-center space-x-1.5 max-w-[65%]">

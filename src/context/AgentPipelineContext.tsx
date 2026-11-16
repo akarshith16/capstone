@@ -1,8 +1,14 @@
 import { createContext, useContext, useState, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { initialIncidents } from '../data/mockData';
-import type { Incident, IncidentStatus } from '../data/mockData';
-import { REAL_SIVCA_STATIONS } from '../data/sivca_dataset';
+import type {
+  Incident,
+  IncidentPriority,
+  IncidentStatus,
+  VerificationDataMode,
+  CitizenIntakeMode,
+} from '../data/mockData';
+import { evaluateTriageCase } from '../utils/triageVerificationSuite';
 
 export type Toast = {
   id: string;
@@ -14,9 +20,32 @@ interface AgentPipelineContextType {
   incidents: Incident[];
   activeIncident: Incident | null;
   setActiveIncident: (incident: Incident | null) => void;
-  submitReport: (reportText: string, location: string, coordinates: [number, number], district: string, category: string) => void;
+  submitReport: (
+    reportText: string,
+    location: string,
+    coordinates: [number, number],
+    district: string,
+    category: string
+  ) => void;
   resolveIncident: (id: string, resolutionType: 'warning' | 'fine' | 'seizure') => void;
-  
+  officerOverrideIncident: (
+    id: string,
+    newPriority: IncidentPriority,
+    overrideReason: string,
+    reviewDurationSeconds: number
+  ) => void;
+  officerApproveIncident: (id: string, reviewDurationSeconds: number) => void;
+
+  // Verification Data Mode controls
+  verificationMode: VerificationDataMode;
+  setVerificationMode: (mode: VerificationDataMode) => void;
+  simulatedSpikeDb: number;
+  setSimulatedSpikeDb: (db: number) => void;
+
+  // Citizen Intake Mode
+  intakeMode: CitizenIntakeMode;
+  setIntakeMode: (mode: CitizenIntakeMode) => void;
+
   // Filtering state
   filterDistrict: string | 'All';
   setFilterDistrict: (d: string | 'All') => void;
@@ -31,6 +60,10 @@ interface AgentPipelineContextType {
   // Modals
   isAnalyticsOpen: boolean;
   setIsAnalyticsOpen: (v: boolean) => void;
+  isVerificationModalOpen: boolean;
+  setIsVerificationModalOpen: (v: boolean) => void;
+  isTransparencyOpen: boolean;
+  setIsTransparencyOpen: (v: boolean) => void;
 
   // Toasts
   toasts: Toast[];
@@ -48,6 +81,11 @@ export const AgentPipelineProvider = ({ children }: { children: ReactNode }) => 
   const [activeIncident, setActiveIncident] = useState<Incident | null>(null);
   const [citizenFeedback, setCitizenFeedback] = useState<string | null>(null);
 
+  // Verification & Demo Controls
+  const [verificationMode, setVerificationMode] = useState<VerificationDataMode>('historical');
+  const [simulatedSpikeDb, setSimulatedSpikeDb] = useState<number>(78.0);
+  const [intakeMode, setIntakeMode] = useState<CitizenIntakeMode>('anonymous');
+
   // Filters
   const [filterDistrict, setFilterDistrict] = useState<string | 'All'>('All');
   const [filterStatus, setFilterStatus] = useState<IncidentStatus | 'All'>('All');
@@ -56,28 +94,30 @@ export const AgentPipelineProvider = ({ children }: { children: ReactNode }) => 
 
   // Modals
   const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
+  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
+  const [isTransparencyOpen, setIsTransparencyOpen] = useState(false);
 
   // Toasts
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const addToast = (message: string, type: Toast['type']) => {
-    const id = Math.random().toString(36).substr(2, 9);
-    setToasts(prev => [...prev, { id, message, type }]);
+    const id = Date.now().toString(36);
+    setToasts((prev) => [...prev, { id, message, type }]);
     setTimeout(() => {
       removeToast(id);
     }, 5000);
   };
 
   const removeToast = (id: string) => {
-    setToasts(prev => prev.filter(t => t.id !== id));
+    setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
   const filteredIncidents = useMemo(() => {
-    return incidents.filter(inc => {
+    return incidents.filter((inc) => {
       const matchDistrict = filterDistrict === 'All' || inc.district === filterDistrict;
       const matchStatus = filterStatus === 'All' || inc.status === filterStatus;
       const matchCategory = filterCategory === 'All' || inc.category === filterCategory;
-      
+
       let matchTime = true;
       if (filterTime !== 'All') {
         const hour = new Date(inc.timestamp).getHours();
@@ -102,7 +142,7 @@ export const AgentPipelineProvider = ({ children }: { children: ReactNode }) => 
         toastType = 'info';
         break;
       case 'fine':
-        actionLog = 'Issued administrative fine (Acta de Infracción) for repeat offense.';
+        actionLog = 'Issued administrative fine (Acta de Infracción) for repeat offense under OPCAT.';
         toastMsg = 'Incident resolved: Administrative fine issued.';
         toastType = 'success';
         break;
@@ -113,121 +153,268 @@ export const AgentPipelineProvider = ({ children }: { children: ReactNode }) => 
         break;
     }
 
-    setIncidents(prev => prev.map(inc => {
-      if (inc.id === id) {
-        if (inc.reporter === 'Citizen (You)') {
-          setCitizenFeedback(`Update on ${inc.id}: Municipal action taken. ${toastMsg}`);
+    setIncidents((prev) =>
+      prev.map((inc) => {
+        if (inc.id === id) {
+          if (inc.reporter.includes('(You)')) {
+            setCitizenFeedback(`Update on ${inc.id}: Municipal action taken. ${toastMsg}`);
+          }
+          return {
+            ...inc,
+            status: 'Resolved',
+            agentLogs: [
+              ...inc.agentLogs,
+              { agent: 'Coordinator', action: actionLog, timestamp: new Date().toISOString() },
+            ],
+          };
         }
-        return {
-          ...inc,
-          status: 'Resolved',
-          agentLogs: [
-            ...inc.agentLogs,
-            { agent: 'Coordinator', action: actionLog, timestamp: new Date().toISOString() }
-          ]
-        };
-      }
-      return inc;
-    }));
+        return inc;
+      })
+    );
     addToast(toastMsg, toastType);
   };
 
-  const submitReport = (reportText: string, location: string, coordinates: [number, number], district: string, category: string) => {
+  const officerOverrideIncident = (
+    id: string,
+    newPriority: IncidentPriority,
+    overrideReason: string,
+    reviewDurationSeconds: number
+  ) => {
+    setIncidents((prev) =>
+      prev.map((inc) => {
+        if (inc.id === id) {
+          const originalPriority = inc.priority;
+          const updated: Incident = {
+            ...inc,
+            priority: newPriority,
+            officerReview: {
+              reviewedAt: new Date().toISOString(),
+              reviewDurationSeconds,
+              decision: 'modified',
+              originalPriority,
+              finalPriority: newPriority,
+              overrideReason,
+              officerBadge: 'POL-MAD-092-OP',
+            },
+            agentLogs: [
+              ...inc.agentLogs,
+              {
+                agent: 'Coordinator',
+                action: `Human Officer Override: Priority modified from ${originalPriority} to ${newPriority}. Justification: "${overrideReason}" (Review duration: ${reviewDurationSeconds}s).`,
+                timestamp: new Date().toISOString(),
+              },
+            ],
+          };
+          if (activeIncident?.id === id) {
+            setActiveIncident(updated);
+          }
+          return updated;
+        }
+        return inc;
+      })
+    );
+    addToast(`Officer Override Saved: Priority set to ${newPriority}`, 'info');
+  };
+
+  const officerApproveIncident = (id: string, reviewDurationSeconds: number) => {
+    setIncidents((prev) =>
+      prev.map((inc) => {
+        if (inc.id === id) {
+          const updated: Incident = {
+            ...inc,
+            officerReview: {
+              reviewedAt: new Date().toISOString(),
+              reviewDurationSeconds,
+              decision: 'approved',
+              originalPriority: inc.priority,
+              finalPriority: inc.priority,
+              officerBadge: 'POL-MAD-092-OP',
+            },
+            agentLogs: [
+              ...inc.agentLogs,
+              {
+                agent: 'Coordinator',
+                action: `Human Officer Sign-Off: AI triage recommendation approved as submitted (${inc.priority}). Review duration: ${reviewDurationSeconds}s.`,
+                timestamp: new Date().toISOString(),
+              },
+            ],
+          };
+          if (activeIncident?.id === id) {
+            setActiveIncident(updated);
+          }
+          return updated;
+        }
+        return inc;
+      })
+    );
+    addToast(`Officer Signed Off: Triage confirmed (${activeIncident?.priority || 'Approved'})`, 'success');
+  };
+
+  const submitReport = (
+    reportText: string,
+    location: string,
+    coordinates: [number, number],
+    district: string,
+    category: string
+  ) => {
+    const isAnon = intakeMode === 'anonymous';
+    const reporter = isAnon
+      ? 'Citizen (You - Anonymous)'
+      : 'Citizen (You - Cl@ve DNI ***7194*)';
+
+    const timestamp = new Date().toISOString();
+    const newIncidentId = `REQ-${2026}-${Date.now().toString().slice(-4)}`;
+
     const newIncident: Incident = {
-      id: `REQ-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000)}`,
-      timestamp: new Date().toISOString(),
+      id: newIncidentId,
+      timestamp,
       location,
       district,
       coordinates,
       description: reportText,
-      reporter: 'Citizen (You)',
+      reporter,
+      isAnonymous: isAnon,
       priority: 'Pending',
       status: 'New',
-      category: category,
-      agentLogs: [{ agent: 'Chulapo', action: 'Received report from citizen. NLP extraction complete.', timestamp: new Date().toISOString() }],
+      category,
+      agentLogs: [
+        {
+          agent: 'Chulapo',
+          action: `Received report from citizen (${isAnon ? 'Anonymous mode' : 'Authenticated via Cl@ve'}). NLP structured entity extraction complete.`,
+          timestamp: new Date().toISOString(),
+        },
+      ],
     };
 
-    setIncidents(prev => [newIncident, ...prev]);
+    setIncidents((prev) => [newIncident, ...prev]);
 
+    // Sentinel step (deterministic verification, zero random numbers)
     setTimeout(() => {
-      const readingDb = 60 + Math.floor(Math.random() * 40);
-      const thresholdDb = 65;
+      // Gather existing active incidents for clustering check
+      const recentList = incidents.slice(0, 15).map((i) => ({
+        location: i.location,
+        coordinates: i.coordinates,
+        timestamp: i.timestamp,
+        district: i.district,
+      }));
 
-      let nearestSensor = REAL_SIVCA_STATIONS[0];
-      let minDistance = 999;
-      REAL_SIVCA_STATIONS.forEach(s => {
-        const dist = Math.sqrt(Math.pow(s.coords[0] - coordinates[0], 2) + Math.pow(s.coords[1] - coordinates[1], 2));
-        if (dist < minDistance) {
-          minDistance = dist;
-          nearestSensor = s;
-        }
+      const evaluation = evaluateTriageCase({
+        reportText,
+        location,
+        district,
+        coordinates,
+        category,
+        timestamp,
+        intakeMode,
+        verificationMode,
+        simulatedSpikeDb,
+        recentIncidents: recentList,
       });
-      const isMobile = minDistance > 0.015;
-      const assignedSensorId = isMobile ? `MOBILE-UNIT-${Math.floor(Math.random() * 16) + 1}` : nearestSensor.id;
-      const sensorType = isMobile ? 'Mobile Unit' : 'Fixed SIVCA';
 
-      const verifiedIncident = {
+      const verifiedIncident: Incident = {
         ...newIncident,
-        status: 'Verifying' as const,
-        sensorVerification: {
-          verified: true,
-          sensorId: assignedSensorId,
-          readingDb,
-          thresholdDb,
-          match: readingDb > thresholdDb,
-          sensorType: sensorType as any
-        },
+        status: 'Verifying',
+        sensorVerification: evaluation.sensorVerification,
+        baselineComparison: evaluation.baselineComparison,
         agentLogs: [
           ...newIncident.agentLogs,
-          { agent: 'Sentinel' as const, action: `Cross-referenced with ${sensorType} ${assignedSensorId} (${!isMobile ? nearestSensor.name : 'Patrol'}). Reading: ${readingDb}dB.`, timestamp: new Date().toISOString() }
-        ]
+          {
+            agent: 'Sentinel',
+            action: evaluation.reasoning[0] + (evaluation.reasoning[1] ? ` ${evaluation.reasoning[1]}` : ''),
+            timestamp: new Date().toISOString(),
+          },
+        ],
       };
-      setIncidents(prev => prev.map(inc => inc.id === verifiedIncident.id ? verifiedIncident : inc));
 
+      setIncidents((prev) =>
+        prev.map((inc) => (inc.id === verifiedIncident.id ? verifiedIncident : inc))
+      );
+
+      // Decider step (deterministic asymmetric scoring)
       setTimeout(() => {
-        const priority = readingDb > 80 ? 'Critical' : (readingDb > 65 ? 'High' : 'Moderate');
-        const prioritizedIncident = {
+        const prioritizedIncident: Incident = {
           ...verifiedIncident,
-          status: 'Prioritizing' as const,
-          priority: priority as 'Critical' | 'High' | 'Moderate',
-          category: 'Nightlife Disturbance',
+          status: 'Prioritizing',
+          priority: evaluation.priority,
           agentLogs: [
             ...verifiedIncident.agentLogs,
-            { agent: 'Decider' as const, action: `Calculated impact score. Priority set to ${priority}.`, timestamp: new Date().toISOString() }
-          ]
+            {
+              agent: 'Decider',
+              action: `Evaluated context under Ley 37/2003 and Madrid OPCAT. Asymmetric score applied. Priority set to ${evaluation.priority}.`,
+              timestamp: new Date().toISOString(),
+            },
+          ],
         };
-        setIncidents(prev => prev.map(inc => inc.id === prioritizedIncident.id ? prioritizedIncident : inc));
-        
-        if (priority === 'Critical') {
-          addToast(`Critical incident detected in ${district}!`, 'critical');
+
+        setIncidents((prev) =>
+          prev.map((inc) => (inc.id === prioritizedIncident.id ? prioritizedIncident : inc))
+        );
+
+        if (evaluation.priority === 'Critical') {
+          addToast(`Critical triage priority flagged for ${district}!`, 'critical');
         }
 
-        const routedTo = priority === 'Critical' ? 'Policía Municipal (092)' : 'DG Sostenibilidad (Environmental Inspectors)';
-
+        // Coordinator step (department routing)
         setTimeout(() => {
-          const routedIncident = {
+          const routedIncident: Incident = {
             ...prioritizedIncident,
-            status: 'Routed' as const,
+            status: 'Routed',
             agentLogs: [
               ...prioritizedIncident.agentLogs,
-              { agent: 'Coordinator' as const, action: `Routed ticket to ${routedTo} based on priority.`, timestamp: new Date().toISOString() }
-            ]
+              {
+                agent: 'Coordinator',
+                action: `Routed ticket to ${evaluation.routedTo} based on priority and sensor clustering.`,
+                timestamp: new Date().toISOString(),
+              },
+            ],
           };
-          setIncidents(prev => prev.map(inc => inc.id === routedIncident.id ? routedIncident : inc));
+
+          setIncidents((prev) =>
+            prev.map((inc) => (inc.id === routedIncident.id ? routedIncident : inc))
+          );
           setActiveIncident(routedIncident);
-        }, 3000);
-      }, 3000);
-    }, 2000);
+        }, 1800);
+      }, 1800);
+    }, 1500);
   };
 
   return (
-    <AgentPipelineContext.Provider value={{ 
-      incidents, activeIncident, setActiveIncident, submitReport, resolveIncident,
-      filterDistrict, setFilterDistrict, filterStatus, setFilterStatus, 
-      filterCategory, setFilterCategory, filterTime, setFilterTime,
-      filteredIncidents, isAnalyticsOpen, setIsAnalyticsOpen, toasts, removeToast,
-      citizenFeedback, setCitizenFeedback
-    }}>
+    <AgentPipelineContext.Provider
+      value={{
+        incidents,
+        activeIncident,
+        setActiveIncident,
+        submitReport,
+        resolveIncident,
+        officerOverrideIncident,
+        officerApproveIncident,
+        verificationMode,
+        setVerificationMode,
+        simulatedSpikeDb,
+        setSimulatedSpikeDb,
+        intakeMode,
+        setIntakeMode,
+        filterDistrict,
+        setFilterDistrict,
+        filterStatus,
+        setFilterStatus,
+        filterCategory,
+        setFilterCategory,
+        filterTime,
+        setFilterTime,
+        filteredIncidents,
+        isAnalyticsOpen,
+        setIsAnalyticsOpen,
+        isVerificationModalOpen,
+        setIsVerificationModalOpen,
+        isTransparencyOpen,
+        setIsTransparencyOpen,
+        toasts,
+        removeToast,
+        citizenFeedback,
+        setCitizenFeedback,
+      }}
+    >
       {children}
     </AgentPipelineContext.Provider>
   );

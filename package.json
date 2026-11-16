@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:triage": "node --experimental-strip-types tests/run_triage_tests.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

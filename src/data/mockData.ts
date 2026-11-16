@@ -1,7 +1,48 @@
-import { REAL_SIVCA_STATIONS } from './sivca_dataset';
+import { findNearestSivcaStation } from './sivca_dataset.ts';
 
 export type IncidentPriority = 'Critical' | 'High' | 'Moderate' | 'Low' | 'Pending';
 export type IncidentStatus = 'New' | 'Verifying' | 'Prioritizing' | 'Routed' | 'Resolved';
+
+export type VerificationDataMode = 'historical' | 'simulated_spike' | 'out_of_range';
+export type CitizenIntakeMode = 'anonymous' | 'formal_denuncia';
+
+export interface SensorVerificationData {
+  verified: boolean;
+  stationId: string;
+  stationName: string;
+  stationType: 'Fixed SIVCA' | 'Mobile Unit UMMA';
+  distanceMeters: number;
+  isOutOfRange: boolean;
+  mobileCandidate: boolean;
+  historicalNightAvgDb: number;
+  recordedPeriod: string;
+  observedDb: number;
+  dataMode: VerificationDataMode;
+  euStrategicIndicatorDb: number; // 55 dBA (Lnight target, EU Dir 2002/49/EC)
+  opcatReferenceDb: number; // 60 dBA (Madrid OPCAT Night ZPAE ambient guideline)
+  neighbourClusterCount: number;
+  isDuplicateMerged: boolean;
+  clusterWindowMinutes: number;
+}
+
+export interface OfficerReviewData {
+  reviewedAt: string;
+  reviewDurationSeconds: number;
+  decision: 'approved' | 'modified' | 'rejected';
+  originalPriority: IncidentPriority;
+  finalPriority: IncidentPriority;
+  overrideReason?: string;
+  officerBadge: string;
+}
+
+export interface BaselineComparisonData {
+  baselinePriority: IncidentPriority;
+  baselineRouting: string;
+  baselineContext: string;
+  enrichedPriority: IncidentPriority;
+  enrichedRouting: string;
+  enrichmentDiffSummary: string;
+}
 
 export interface Incident {
   id: string;
@@ -11,18 +52,14 @@ export interface Incident {
   coordinates: [number, number]; // [lat, lng]
   description: string;
   reporter: string;
+  isAnonymous: boolean;
   priority: IncidentPriority;
   status: IncidentStatus;
   category: string;
   eventContext?: string;
-  sensorVerification?: {
-    verified: boolean;
-    sensorId: string;
-    readingDb: number;
-    thresholdDb: number;
-    match: boolean;
-    sensorType: 'Fixed SIVCA' | 'Mobile Unit';
-  };
+  sensorVerification?: SensorVerificationData;
+  officerReview?: OfficerReviewData;
+  baselineComparison?: BaselineComparisonData;
   agentLogs: {
     agent: 'Chulapo' | 'Sentinel' | 'Decider' | 'Coordinator';
     action: string;
@@ -30,119 +67,180 @@ export interface Incident {
   }[];
 }
 
-const MADRID_DISTRICTS = [
-  { name: 'Centro', coords: [40.418, -3.703] },
-  { name: 'Arganzuela', coords: [40.398, -3.693] },
-  { name: 'Retiro', coords: [40.411, -3.676] },
-  { name: 'Salamanca', coords: [40.428, -3.687] },
-  { name: 'Chamartín', coords: [40.458, -3.677] },
-  { name: 'Tetuán', coords: [40.460, -3.698] },
-  { name: 'Chamberí', coords: [40.434, -3.703] },
-  { name: 'Fuencarral-El Pardo', coords: [40.478, -3.711] },
-  { name: 'Moncloa-Aravaca', coords: [40.435, -3.731] },
-  { name: 'Latina', coords: [40.388, -3.744] },
-  { name: 'Carabanchel', coords: [40.378, -3.743] },
-  { name: 'Usera', coords: [40.383, -3.704] },
-  { name: 'Puente de Vallecas', coords: [40.383, -3.666] },
-  { name: 'Moratalaz', coords: [40.407, -3.645] },
-  { name: 'Ciudad Lineal', coords: [40.445, -3.652] },
-  { name: 'Hortaleza', coords: [40.472, -3.642] },
-  { name: 'Villaverde', coords: [40.345, -3.708] },
-  { name: 'Villa de Vallecas', coords: [40.373, -3.623] },
-  { name: 'Vicálvaro', coords: [40.404, -3.608] },
-  { name: 'San Blas-Canillejas', coords: [40.430, -3.615] },
-  { name: 'Barajas', coords: [40.474, -3.578] },
+export const MADRID_DISTRICTS = [
+  { name: 'Centro', coords: [40.418, -3.703] as [number, number] },
+  { name: 'Arganzuela', coords: [40.398, -3.693] as [number, number] },
+  { name: 'Retiro', coords: [40.411, -3.676] as [number, number] },
+  { name: 'Salamanca', coords: [40.428, -3.687] as [number, number] },
+  { name: 'Chamartín', coords: [40.458, -3.677] as [number, number] },
+  { name: 'Tetuán', coords: [40.460, -3.698] as [number, number] },
+  { name: 'Chamberí', coords: [40.434, -3.703] as [number, number] },
+  { name: 'Fuencarral-El Pardo', coords: [40.478, -3.711] as [number, number] },
+  { name: 'Moncloa-Aravaca', coords: [40.435, -3.731] as [number, number] },
+  { name: 'Latina', coords: [40.388, -3.744] as [number, number] },
+  { name: 'Carabanchel', coords: [40.378, -3.743] as [number, number] },
+  { name: 'Usera', coords: [40.383, -3.704] as [number, number] },
+  { name: 'Puente de Vallecas', coords: [40.383, -3.666] as [number, number] },
+  { name: 'Moratalaz', coords: [40.407, -3.645] as [number, number] },
+  { name: 'Ciudad Lineal', coords: [40.445, -3.652] as [number, number] },
+  { name: 'Hortaleza', coords: [40.472, -3.642] as [number, number] },
+  { name: 'Villaverde', coords: [40.345, -3.708] as [number, number] },
+  { name: 'Villa de Vallecas', coords: [40.373, -3.623] as [number, number] },
+  { name: 'Vicálvaro', coords: [40.404, -3.608] as [number, number] },
+  { name: 'San Blas-Canillejas', coords: [40.430, -3.615] as [number, number] },
+  { name: 'Barajas', coords: [40.474, -3.578] as [number, number] },
 ];
 
+export const EVENTS = [
+  { name: 'Real Madrid Match (Santiago Bernabéu)', district: 'Chamartín', prob: 0.15 },
+  { name: 'San Isidro Festival (Pradera)', district: 'Carabanchel', prob: 0.1 },
+  { name: 'Mad Cool Festival (Valdebebas)', district: 'Hortaleza', prob: 0.05 },
+  { name: 'Pride Parade (Chueca)', district: 'Centro', prob: 0.2 },
+  { name: 'El Rastro Market (La Latina)', district: 'Centro', prob: 0.15 },
+  { name: 'WiZink Center Concert', district: 'Salamanca', prob: 0.1 },
+];
+
+/**
+ * Procedural seeded generation for background map rendering & macro-analytics.
+ * Anchored to the 31 real Madrid SIVCA stations and their actual historical Ln night baseline.
+ */
 export const generateMockIncidents = (): Incident[] => {
   const incidents: Incident[] = [];
-  const categories = ['Terrace Ordinance', 'Nightlife Disturbance', 'Construction', 'Traffic Noise', 'Private Party'];
-
-  const EVENTS = [
-    { name: 'Real Madrid Match (Santiago Bernabéu)', district: 'Chamartín', prob: 0.15 },
-    { name: 'San Isidro Festival (Pradera)', district: 'Carabanchel', prob: 0.1 },
-    { name: 'Mad Cool Festival (Valdebebas)', district: 'Hortaleza', prob: 0.05 },
-    { name: 'Pride Parade (Chueca)', district: 'Centro', prob: 0.2 },
-    { name: 'El Rastro Market (La Latina)', district: 'Centro', prob: 0.15 },
-    { name: 'WiZink Center Concert', district: 'Salamanca', prob: 0.1 }
+  const categories = [
+    'Terrace Ordinance',
+    'Nightlife Disturbance',
+    'Construction Noise',
+    'Traffic/Vehicles',
+    'Private Party',
   ];
 
-  // Generating 3000 incidents for deep analytics based on real SIVCA stations
+  // 3000 incidents for historical urban analytics
   for (let i = 1; i <= 3000; i++) {
-    const districtInfo = MADRID_DISTRICTS[Math.floor(Math.random() * MADRID_DISTRICTS.length)];
-    
-    // Check if this district has a correlated event
+    const districtInfo = MADRID_DISTRICTS[(i * 7) % MADRID_DISTRICTS.length];
+
     let eventContext = undefined;
-    const possibleEvents = EVENTS.filter(e => e.district === districtInfo.name);
-    if (possibleEvents.length > 0) {
-      if (Math.random() < possibleEvents[0].prob) {
-        eventContext = possibleEvents[0].name;
-      }
+    const possibleEvents = EVENTS.filter((e) => e.district === districtInfo.name);
+    if (possibleEvents.length > 0 && (i % 5 === 0)) {
+      eventContext = possibleEvents[0].name;
     }
 
-    const jitterLat = districtInfo.coords[0] + (Math.random() - 0.5) * 0.02;
-    const jitterLng = districtInfo.coords[1] + (Math.random() - 0.5) * 0.02;
-    
-    const isCritical = Math.random() > 0.85;
-    const priority = isCritical ? 'Critical' : (Math.random() > 0.4 ? 'High' : 'Moderate');
-    
-    const randStatus = Math.random();
+    // Pseudo-deterministic coordinates based on index i
+    const angle = (i * 0.618033) * 2 * Math.PI;
+    const radius = 0.005 + ((i % 100) / 100) * 0.015;
+    const lat = districtInfo.coords[0] + Math.sin(angle) * radius;
+    const lng = districtInfo.coords[1] + Math.cos(angle) * radius;
+
+    const nearestLookup = findNearestSivcaStation([lat, lng]);
+    const nearest = nearestLookup.station;
+    const distMeters = nearestLookup.distanceMeters;
+    const isOutOfRange = nearestLookup.isOutOfRange;
+
+    const baseLn = nearest.historicalNightAvgDb;
+    const category = categories[i % categories.length];
+
+    const isCritical = (i % 9 === 0) || (eventContext !== undefined && i % 3 === 0);
+    const isHigh = !isCritical && (i % 4 === 0 || baseLn > 61);
+    const priority: IncidentPriority = isCritical ? 'Critical' : isHigh ? 'High' : 'Moderate';
+
+    const statusMod = i % 10;
     let status: IncidentStatus = 'Routed';
-    if (randStatus > 0.8) status = 'Resolved';
-    else if (randStatus < 0.1) status = 'Verifying';
-    else if (randStatus < 0.2) status = 'Prioritizing';
-    else if (randStatus < 0.3) status = 'New';
+    if (statusMod >= 7) status = 'Resolved';
+    else if (statusMod === 1) status = 'Verifying';
+    else if (statusMod === 2) status = 'Prioritizing';
+    else if (statusMod === 0) status = 'New';
 
-    const readingDb = 60 + Math.floor(Math.random() * 40);
-    const thresholdDb = isCritical ? 65 : 75;
-    
-    let nearestSensor = REAL_SIVCA_STATIONS[0];
-    let minDistance = 999;
-    REAL_SIVCA_STATIONS.forEach(s => {
-      const dist = Math.sqrt(Math.pow(s.coords[0] - jitterLat, 2) + Math.pow(s.coords[1] - jitterLng, 2));
-      if (dist < minDistance) {
-        minDistance = dist;
-        nearestSensor = s;
-      }
-    });
+    const clusterCount = (i % 7 === 0) ? 4 : (i % 3 === 0) ? 2 : 1;
+    const routedTo =
+      priority === 'Critical'
+        ? 'Policía Municipal (092 - Priority Patrol)'
+        : 'DG Sostenibilidad (Environmental Inspectors)';
 
-    const isMobile = minDistance > 0.025;
-    const assignedSensorId = isMobile ? `MOBILE-UNIT-${Math.floor(Math.random() * 16) + 1}` : nearestSensor.id;
-    const sensorType = isMobile ? 'Mobile Unit' : 'Fixed SIVCA';
+    const stationType = isOutOfRange ? 'Mobile Unit UMMA' : 'Fixed SIVCA';
+    const assignedSensorId = isOutOfRange
+      ? `UMMA-MOBILE-${((i % 17) + 1).toString().padStart(2, '0')}`
+      : nearest.id;
 
-    const routedTo = priority === 'Critical' ? 'Policía Municipal (092)' : 'DG Sostenibilidad (Environmental Inspectors)';
+    const observedDb = isOutOfRange
+      ? baseLn
+      : Number((baseLn + (isCritical ? 12.5 : isHigh ? 6.2 : 1.1)).toFixed(1));
 
-    let description = `Citizen reported excessive noise from a local venue in ${districtInfo.name}. Continuous disturbance.`;
+    let description = `Citizen report concerning ${category.toLowerCase()} in ${districtInfo.name}.`;
     if (eventContext) {
-      description = `Major noise disturbance correlated with ${eventContext}. Multiple reports aggregated.`;
+      description = `Noise disturbance correlated with ${eventContext}. Multiple resident notices.`;
     }
+
+    const baselinePriority: IncidentPriority = 'Moderate';
+    const baselineRouting = 'DG Sostenibilidad (General Queue)';
+    const diffSummary =
+      priority === 'Critical'
+        ? 'Asymmetric triage uplift from Moderate to Critical due to 4x multi-resident cluster and high contextual night reading.'
+        : priority === 'High'
+        ? 'Triage uplift from Moderate to High based on repeat venue history and ZPAE zone status.'
+        : 'Priorities maintained without sensor downgrade.';
 
     incidents.push({
-      id: `REQ-${new Date().getFullYear()}-${1000 + i}`,
-      timestamp: new Date(Date.now() - Math.random() * 86400000 * 30).toISOString(), 
-      location: `Calle Mock ${i}, ${districtInfo.name}`,
+      id: `REQ-${2026}-${(1000 + i).toString()}`,
+      timestamp: new Date(Date.now() - (i * 864000) - (i % 86400000)).toISOString(),
+      location: `Calle ${districtInfo.name} ${((i % 180) + 1)}, ${districtInfo.name}`,
       district: districtInfo.name,
-      coordinates: [jitterLat, jitterLng] as [number, number],
+      coordinates: [lat, lng],
       description,
-      reporter: `Citizen-${Math.floor(Math.random() * 10000)}`,
+      reporter: (i % 3 === 0) ? 'Ciudadano Anónimo (Madrid)' : `Identificado Cl@ve (DNI ***${(1000 + (i % 8999))}*)`,
+      isAnonymous: i % 3 === 0,
       priority: status === 'Verifying' ? 'Pending' : priority,
-      status: status,
-      category: categories[Math.floor(Math.random() * categories.length)],
+      status,
+      category,
       eventContext,
       sensorVerification: {
         verified: status !== 'New',
-        sensorId: assignedSensorId,
-        readingDb,
-        thresholdDb,
-        match: readingDb > thresholdDb,
-        sensorType
+        stationId: assignedSensorId,
+        stationName: isOutOfRange ? 'Madrid Mobile Unit Fleet (17 UMMA)' : nearest.name,
+        stationType,
+        distanceMeters: distMeters,
+        isOutOfRange,
+        mobileCandidate: isOutOfRange,
+        historicalNightAvgDb: nearest.historicalNightAvgDb,
+        recordedPeriod: nearest.recordedPeriod,
+        observedDb,
+        dataMode: 'historical',
+        euStrategicIndicatorDb: 55,
+        opcatReferenceDb: nearest.zpaeArea ? 60 : 65,
+        neighbourClusterCount: clusterCount,
+        isDuplicateMerged: clusterCount > 1,
+        clusterWindowMinutes: 20,
+      },
+      baselineComparison: {
+        baselinePriority,
+        baselineRouting,
+        baselineContext: 'Single unverified web intake, 0m sensor context, isolated report.',
+        enrichedPriority: priority,
+        enrichedRouting: routedTo,
+        enrichmentDiffSummary: diffSummary,
       },
       agentLogs: [
-        { agent: 'Chulapo', action: 'Ingested raw report and extracted entities.', timestamp: new Date(Date.now() - 50000).toISOString() },
-        { agent: 'Sentinel', action: `Cross-referenced with ${sensorType} ${assignedSensorId} (${!isMobile ? nearestSensor.name : 'Patrol'}). Reading: ${readingDb}dB.`, timestamp: new Date(Date.now() - 40000).toISOString() },
-        { agent: 'Decider', action: `Evaluated limits. Assigned priority: ${priority}.`, timestamp: new Date(Date.now() - 30000).toISOString() },
-        { agent: 'Coordinator', action: `Routed ticket to ${routedTo} based on priority.`, timestamp: new Date(Date.now() - 20000).toISOString() },
-      ]
+        {
+          agent: 'Chulapo',
+          action: 'Extracted structured entities (NLP) and validated Madrid district coordinates.',
+          timestamp: new Date(Date.now() - 50000).toISOString(),
+        },
+        {
+          agent: 'Sentinel',
+          action: `Cross-referenced with SIVCA ${nearest.id} (${nearest.name}, dist: ${distMeters}m). Historical Ln: ${nearest.historicalNightAvgDb} dBA. ${
+            isOutOfRange ? 'Distance >500m: flagged for Madrid UMMA Mobile fleet.' : 'Within fixed station radius.'
+          }`,
+          timestamp: new Date(Date.now() - 40000).toISOString(),
+        },
+        {
+          agent: 'Decider',
+          action: `Asymmetric scoring applied. Baseline context evaluated under Ley 37/2003 & OPCAT. Triage priority: ${priority}.`,
+          timestamp: new Date(Date.now() - 30000).toISOString(),
+        },
+        {
+          agent: 'Coordinator',
+          action: `Routed ticket to ${routedTo}.`,
+          timestamp: new Date(Date.now() - 20000).toISOString(),
+        },
+      ],
     });
   }
 
