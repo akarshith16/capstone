@@ -133,8 +133,8 @@ export const generateMockIncidents = (): Incident[] => {
     'Private Party',
   ];
 
-  // 3000 incidents for historical urban analytics
-  for (let i = 1; i <= 3000; i++) {
+  // 45 realistic operational incidents across Madrid districts (uncluttered map with clear station visibility)
+  for (let i = 1; i <= 45; i++) {
     const districtInfo = MADRID_DISTRICTS[(i * 7) % MADRID_DISTRICTS.length];
 
     let eventContext = undefined;

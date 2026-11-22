@@ -91,7 +91,7 @@ function App() {
                     <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-secondary"></span>
                   </span>
                   <span className="text-xs text-secondary font-medium tracking-wide">
-                    Active SIVCA Network (31 Stations)
+                    Active SIVCA Network (31 Fixed + 17 Mobile Units)
                   </span>
                 </div>
 

@@ -74,7 +74,7 @@ const AnalyticsModal: React.FC = () => {
 
     insights.push({
       title: "Seasonal Trend Forecast",
-      desc: `Aggregated data from 3,000+ nodes projects a 15% increase in 'Terrace Ordinance' violations over the next weekend due to weather patterns.`,
+      desc: `Aggregated municipal telemetry across 31 fixed stations and 17 mobile UMMA units projects a 15% increase in 'Terrace Ordinance' violations over the next weekend due to weather patterns.`,
       confidence: 78,
       action: `Issue automated digital warnings to venues`,
       icon: Clock,
@@ -106,7 +106,7 @@ const AnalyticsModal: React.FC = () => {
                 <h2 className="text-2xl font-black text-white tracking-tight">Intelligence Hub</h2>
                 <p className="text-xs text-primary font-bold uppercase tracking-widest mt-1 flex items-center">
                   <span className="w-2 h-2 rounded-full bg-primary animate-pulse mr-2"></span>
-                  Processing {incidents.length.toLocaleString()} Data Points • SIVCA Network datos.madrid.es (Post-Period Averages Ld, Le, Ln)
+                  Processing {incidents.length.toLocaleString()} Active Incident Records • 31 Fixed SIVCA Stations & 17 Mobile UMMA Fleet
                 </p>
               </div>
             </div>
@@ -249,7 +249,7 @@ const AnalyticsModal: React.FC = () => {
                     Machine Learning Forecasting
                   </h3>
                   <p className="text-gray-300 text-sm leading-relaxed max-w-2xl">
-                    Our AI models continuously process SIVCA acoustic telemetry and cross-reference it with Madrid's public event calendars. By analyzing over {incidents.length.toLocaleString()} historical nodes, we identify recurring clusters and predict future acoustic saturation zones and recurring hotspots under Madrid's OPCAT framework.
+                    Our AI models continuously process SIVCA acoustic telemetry and cross-reference it with Madrid's public event calendars. By analyzing 31 fixed stations and 17 mobile units alongside live incident queues, we identify recurring clusters and predict future acoustic saturation zones and recurring hotspots under Madrid's OPCAT framework.
                   </p>
                 </div>
                 

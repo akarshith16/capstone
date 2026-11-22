@@ -410,9 +410,211 @@ export const REAL_SIVCA_STATIONS: SivcaStation[] = [
 
 /**
  * Madrid City Council Mobile Acoustic Fleet (UMMA / Policía Municipal)
- * Total: 17 mobile acoustic stations used for targeted campaigns & out-of-range complaints.
+ * Total: 17 mobile acoustic stations used for targeted campaigns & out-of-range complaints (>500m).
  */
 export const MADRID_MOBILE_FLEET_SIZE = 17;
+
+export interface MobileSivcaUnit {
+  id: string;
+  name: string;
+  district: string;
+  sectorName: string;
+  coords: [number, number];
+  equipment: string;
+  status: 'Active Patrol' | 'Targeted Sonometric Campaign' | 'Standby';
+  assignedAgency: string;
+  zpaeTarget: boolean;
+}
+
+export const REAL_MOBILE_UMMA_UNITS: MobileSivcaUnit[] = [
+  {
+    id: 'UMMA-01',
+    name: 'Mobile Unit 01 - Gaztambide',
+    district: 'Chamberí',
+    sectorName: 'ZPAE Gaztambide (Calle Hilarión Eslava / Isaac Peral)',
+    coords: [40.4371, -3.7175],
+    equipment: 'Type 1 Precision Sonometer (CESVA SC420) + Telescopic Mast',
+    status: 'Active Patrol',
+    assignedAgency: 'Policía Municipal (Unidad de Medio Ambiente - UMA)',
+    zpaeTarget: true,
+  },
+  {
+    id: 'UMMA-02',
+    name: 'Mobile Unit 02 - Malasaña',
+    district: 'Centro',
+    sectorName: 'ZPAE Centro (Plaza Dos de Mayo / Calle de la Palma)',
+    coords: [40.4265, -3.7042],
+    equipment: 'Type 1 Precision Sonometer (CESVA SC420) + Acoustic Calibrator',
+    status: 'Targeted Sonometric Campaign',
+    assignedAgency: 'Policía Municipal (092 Patrol)',
+    zpaeTarget: true,
+  },
+  {
+    id: 'UMMA-03',
+    name: 'Mobile Unit 03 - Trafalgar-Olavide',
+    district: 'Chamberí',
+    sectorName: 'ZPAE Trafalgar (Plaza de Olavide / Calle Luchana)',
+    coords: [40.4335, -3.7015],
+    equipment: 'Type 1 Precision Sonometer (CESVA SC420) + Outdoor Protection Kit',
+    status: 'Active Patrol',
+    assignedAgency: 'Policía Municipal (Unidad de Medio Ambiente - UMA)',
+    zpaeTarget: true,
+  },
+  {
+    id: 'UMMA-04',
+    name: 'Mobile Unit 04 - La Latina',
+    district: 'Centro',
+    sectorName: 'Calle Cava Baja / Plaza de la Paja',
+    coords: [40.4118, -3.7102],
+    equipment: 'Type 1 Precision Sonometer (CESVA SC420)',
+    status: 'Active Patrol',
+    assignedAgency: 'DG Sostenibilidad (Environmental Inspectors)',
+    zpaeTarget: true,
+  },
+  {
+    id: 'UMMA-05',
+    name: 'Mobile Unit 05 - Chueca',
+    district: 'Centro',
+    sectorName: 'Plaza de Chueca / Calle Hortaleza',
+    coords: [40.4223, -3.699],
+    equipment: 'Type 1 Precision Sonometer (CESVA SC420)',
+    status: 'Active Patrol',
+    assignedAgency: 'Policía Municipal (092 Patrol)',
+    zpaeTarget: true,
+  },
+  {
+    id: 'UMMA-06',
+    name: 'Mobile Unit 06 - Salamanca Goya',
+    district: 'Salamanca',
+    sectorName: 'Calle Goya / Calle Serrano Terrace Axis',
+    coords: [40.4255, -3.6845],
+    equipment: 'Type 1 Precision Sonometer (CESVA SC420)',
+    status: 'Active Patrol',
+    assignedAgency: 'Policía Municipal (092 Patrol)',
+    zpaeTarget: false,
+  },
+  {
+    id: 'UMMA-07',
+    name: 'Mobile Unit 07 - Bernabéu Perimeter',
+    district: 'Chamartín',
+    sectorName: 'Avenida Concha Espina / Paseo de la Castellana',
+    coords: [40.453, -3.6883],
+    equipment: 'Type 1 Sonometer (CESVA SC420) + Real-Time FFT Analyzer',
+    status: 'Targeted Sonometric Campaign',
+    assignedAgency: 'Policía Municipal (Unidad de Medio Ambiente - UMA)',
+    zpaeTarget: false,
+  },
+  {
+    id: 'UMMA-08',
+    name: 'Mobile Unit 08 - Cuatro Caminos / Azca',
+    district: 'Tetuán',
+    sectorName: 'Complejo AZCA / Calle Orense',
+    coords: [40.4495, -3.698],
+    equipment: 'Type 1 Precision Sonometer (CESVA SC420)',
+    status: 'Active Patrol',
+    assignedAgency: 'Policía Municipal (092 Patrol)',
+    zpaeTarget: false,
+  },
+  {
+    id: 'UMMA-09',
+    name: 'Mobile Unit 09 - Moncloa University Sector',
+    district: 'Moncloa-Aravaca',
+    sectorName: 'Calle Princesa / Argüelles Residential Hub',
+    coords: [40.434, -3.719],
+    equipment: 'Type 1 Precision Sonometer (CESVA SC420)',
+    status: 'Active Patrol',
+    assignedAgency: 'Policía Municipal (092 Patrol)',
+    zpaeTarget: false,
+  },
+  {
+    id: 'UMMA-10',
+    name: 'Mobile Unit 10 - Madrid Río / Arganzuela',
+    district: 'Arganzuela',
+    sectorName: 'Paseo de la Chopera / Matadero Madrid',
+    coords: [40.398, -3.698],
+    equipment: 'Type 1 Precision Sonometer (CESVA SC420)',
+    status: 'Standby',
+    assignedAgency: 'DG Sostenibilidad (Environmental Inspectors)',
+    zpaeTarget: false,
+  },
+  {
+    id: 'UMMA-11',
+    name: 'Mobile Unit 11 - Retiro / Ibiza',
+    district: 'Retiro',
+    sectorName: 'Calle Menéndez Pelayo Dining Boulevard',
+    coords: [40.418, -3.678],
+    equipment: 'Type 1 Precision Sonometer (CESVA SC420)',
+    status: 'Active Patrol',
+    assignedAgency: 'Policía Municipal (092 Patrol)',
+    zpaeTarget: false,
+  },
+  {
+    id: 'UMMA-12',
+    name: 'Mobile Unit 12 - Huertas / Las Letras',
+    district: 'Centro',
+    sectorName: 'Calle de las Huertas / Plaza Santa Ana',
+    coords: [40.4135, -3.7015],
+    equipment: 'Type 1 Precision Sonometer (CESVA SC420)',
+    status: 'Active Patrol',
+    assignedAgency: 'Policía Municipal (092 Patrol)',
+    zpaeTarget: true,
+  },
+  {
+    id: 'UMMA-13',
+    name: 'Mobile Unit 13 - Valdebebas / Hortaleza',
+    district: 'Hortaleza',
+    sectorName: 'Avenida de las Fuerzas Armadas Outer Sector',
+    coords: [40.49, -3.61],
+    equipment: 'Type 1 Sonometer + Telemetry Transmitter',
+    status: 'Standby',
+    assignedAgency: 'DG Sostenibilidad (Mobile Fleet)',
+    zpaeTarget: false,
+  },
+  {
+    id: 'UMMA-14',
+    name: 'Mobile Unit 14 - Carabanchel / Vista Alegre',
+    district: 'Carabanchel',
+    sectorName: 'Paseo Muñoz Grandes / Palacio Vistalegre',
+    coords: [40.388, -3.745],
+    equipment: 'Type 1 Precision Sonometer (CESVA SC420)',
+    status: 'Active Patrol',
+    assignedAgency: 'Policía Municipal (092 Patrol)',
+    zpaeTarget: false,
+  },
+  {
+    id: 'UMMA-15',
+    name: 'Mobile Unit 15 - Puente de Vallecas',
+    district: 'Puente de Vallecas',
+    sectorName: 'Avenida de la Albufera Night Commercial Hub',
+    coords: [40.395, -3.665],
+    equipment: 'Type 1 Precision Sonometer (CESVA SC420)',
+    status: 'Active Patrol',
+    assignedAgency: 'Policía Municipal (092 Patrol)',
+    zpaeTarget: false,
+  },
+  {
+    id: 'UMMA-16',
+    name: 'Mobile Unit 16 - Usera Commercial Axis',
+    district: 'Usera',
+    sectorName: 'Calle Marcelo Usera',
+    coords: [40.384, -3.706],
+    equipment: 'Type 1 Precision Sonometer (CESVA SC420)',
+    status: 'Standby',
+    assignedAgency: 'DG Sostenibilidad (Mobile Fleet)',
+    zpaeTarget: false,
+  },
+  {
+    id: 'UMMA-17',
+    name: 'Mobile Unit 17 - Fuencarral / Mirasierra',
+    district: 'Fuencarral-El Pardo',
+    sectorName: 'Calle Nuria / Costa Brava Northern Perimeter',
+    coords: [40.485, -3.708],
+    equipment: 'Type 1 Precision Sonometer (CESVA SC420)',
+    status: 'Standby',
+    assignedAgency: 'DG Sostenibilidad (Mobile Fleet)',
+    zpaeTarget: false,
+  },
+];
 
 /**
  * Calculates accurate geodesic distance between two coordinate pairs on Earth using Haversine formula.
