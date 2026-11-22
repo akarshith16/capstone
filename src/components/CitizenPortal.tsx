@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Shield,
@@ -12,27 +12,15 @@ import {
   LocateFixed,
   MapPin,
   CheckCircle2,
-  Camera,
-  Mic,
-  Square,
-  Play,
-  Pause,
-  Sparkles,
   ChevronRight,
-  UserCheck,
-  HelpCircle,
   ExternalLink,
   X,
   FileText,
   VolumeX,
+  Pencil,
+  Send,
 } from 'lucide-react';
 import { useAgentPipeline } from '../context/AgentPipelineContext';
-import {
-  analyzeEvidencePhoto,
-  analyzeEvidenceAudio,
-  type PhotoAnalysisResult,
-  type AudioAnalysisResult,
-} from '../services/geminiMultimodal';
 import { MADRID_DISTRICTS, type Incident } from '../data/mockData';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
@@ -67,37 +55,36 @@ const MapLocationPicker: React.FC<{
   return <Marker position={position} icon={citizenPinIcon} />;
 };
 
-// Preset SVG Visuals for instant 1-click photo evidence testing
-const SAMPLE_PHOTO_PRESETS = [
+const CATEGORIES = [
   {
-    id: 'terrace',
-    label: 'Cava Baja Terrace Spillover',
-    category: 'Terrace',
-    location: 'Calle de la Cava Baja 12, Centro',
-    coords: [40.4124, -3.7093] as [number, number],
-    district: 'Centro',
-    dataUrl:
-      'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%230f172a"/><rect y="260" width="600" height="140" fill="%231e293b"/><circle cx="120" cy="80" r="40" fill="%23f59e0b" opacity="0.15"/><rect x="80" y="240" width="80" height="60" rx="6" fill="%23b45309"/><rect x="220" y="240" width="80" height="60" rx="6" fill="%23b45309"/><rect x="360" y="240" width="80" height="60" rx="6" fill="%23b45309"/><circle cx="110" cy="220" r="16" fill="%23e2e8f0"/><circle cx="150" cy="220" r="16" fill="%23cbd5e1"/><circle cx="250" cy="220" r="16" fill="%23e2e8f0"/><circle cx="290" cy="220" r="16" fill="%23cbd5e1"/><circle cx="390" cy="220" r="16" fill="%23e2e8f0"/><circle cx="430" cy="220" r="16" fill="%23cbd5e1"/><rect x="40" y="140" width="20" height="30" fill="%2338bdf8" rx="3"/><text x="300" y="360" fill="%2394a3b8" font-family="sans-serif" font-size="14" text-anchor="middle">Calle de la Cava Baja — Late Night Terrace Crowding</text></svg>',
+    id: 'Bar, club or venue',
+    title: 'Bar, club or venue',
+    desc: 'Loud music, crowds at the door',
+    icon: Music,
   },
   {
-    id: 'club',
-    label: 'Malasaña Nightclub Entrance',
-    category: 'Bar, club or venue',
-    location: 'Calle de la Palma 14, Centro',
-    coords: [40.427, -3.7045] as [number, number],
-    district: 'Centro',
-    dataUrl:
-      'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%230b0f19"/><rect x="180" y="100" width="240" height="260" fill="%231e1b4b" stroke="%23818cf8" stroke-width="3"/><rect x="220" y="160" width="160" height="200" fill="%234338ca"/><circle cx="300" cy="80" r="60" fill="%23a855f7" opacity="0.3"/><circle cx="160" cy="280" r="15" fill="%23f43f5e"/><circle cx="130" cy="285" r="15" fill="%23cbd5e1"/><circle cx="100" cy="290" r="15" fill="%2394a3b8"/><circle cx="440" cy="280" r="15" fill="%23e2e8f0"/><circle cx="470" cy="285" r="15" fill="%23cbd5e1"/><text x="300" y="140" fill="%23e0e7ff" font-family="sans-serif" font-size="16" font-weight="bold" text-anchor="middle">BAR CLUB DISCOTECA</text><text x="300" y="385" fill="%2394a3b8" font-family="sans-serif" font-size="14" text-anchor="middle">Calle de la Palma — Club Queue & Bass Leakage</text></svg>',
+    id: 'Terrace',
+    title: 'Terrace',
+    desc: 'Outdoor seating too loud or open late',
+    icon: UtensilsCrossed,
   },
   {
-    id: 'works',
-    label: 'Night Roadwork Jackhammer',
-    category: 'Construction or works',
-    location: 'Calle de Santa Engracia 30, Chamberí',
-    coords: [40.432, -3.698] as [number, number],
-    district: 'Chamberí',
-    dataUrl:
-      'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400"><rect width="600" height="400" fill="%2318181b"/><rect y="240" width="600" height="160" fill="%2327272a"/><rect x="150" y="220" width="300" height="30" fill="%23eab308"/><rect x="150" y="220" width="30" height="30" fill="%23000"/><rect x="210" y="220" width="30" height="30" fill="%23000"/><rect x="270" y="220" width="30" height="30" fill="%23000"/><rect x="330" y="220" width="30" height="30" fill="%23000"/><rect x="390" y="220" width="30" height="30" fill="%23000"/><circle cx="300" cy="180" r="18" fill="%23eab308"/><rect x="294" y="198" width="12" height="50" fill="%23f97316"/><rect x="290" y="248" width="20" height="40" fill="%2394a3b8"/><text x="300" y="360" fill="%23a1a1aa" font-family="sans-serif" font-size="14" text-anchor="middle">Calle de Santa Engracia — Demolition Machinery at 03:00</text></svg>',
+    id: 'Neighbor or party',
+    title: 'Neighbor or party',
+    desc: 'A flat, rooftop or private gathering',
+    icon: PartyPopper,
+  },
+  {
+    id: 'Construction or works',
+    title: 'Construction or works',
+    desc: 'Drilling, machinery, roadworks',
+    icon: HardHat,
+  },
+  {
+    id: 'Traffic',
+    title: 'Traffic',
+    desc: 'Horns, engines, motorbikes',
+    icon: Car,
   },
 ];
 
@@ -107,8 +94,6 @@ const CitizenPortal: React.FC = () => {
     submitReport,
     setCurrentAppView,
     setActiveIncident,
-    intakeMode,
-    setIntakeMode,
   } = useAgentPipeline();
 
   // Navigation state: 0 = Landing ("Is noise keeping you up?"), 1-4 = Wizard Steps, 5 = Submission Success
@@ -124,39 +109,9 @@ const CitizenPortal: React.FC = () => {
   const [isRecurring, setIsRecurring] = useState<boolean>(true);
   const [additionalNotes, setAdditionalNotes] = useState<string>('');
 
-  // Multimodal Gemini Photo state
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
-  const [photoAnalysis, setPhotoAnalysis] = useState<PhotoAnalysisResult | null>(null);
-  const [isAnalyzingPhoto, setIsAnalyzingPhoto] = useState<boolean>(false);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-
-  // Multimodal Gemini Audio / Voice state
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [audioAnalysis, setAudioAnalysis] = useState<AudioAnalysisResult | null>(null);
-  const [isRecording, setIsRecording] = useState<boolean>(false);
-  const [recordingSeconds, setRecordingSeconds] = useState<number>(0);
-  const [isAnalyzingAudio, setIsAnalyzingAudio] = useState<boolean>(false);
-  const [isPlayingAudio, setIsPlayingAudio] = useState<boolean>(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const audioElementRef = useRef<HTMLAudioElement | null>(null);
-
   // Submission tracking
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [submittedTicketId, setSubmittedTicketId] = useState<string | null>(null);
-
-  // Audio timer
-  useEffect(() => {
-    let interval: any = null;
-    if (isRecording) {
-      interval = setInterval(() => {
-        setRecordingSeconds((prev) => prev + 1);
-      }, 1000);
-    } else {
-      setRecordingSeconds(0);
-    }
-    return () => clearInterval(interval);
-  }, [isRecording]);
 
   // Reverse match district when coordinates change
   const handleMapLocationSelect = (newCoords: [number, number]) => {
@@ -198,141 +153,20 @@ const CitizenPortal: React.FC = () => {
     }
   };
 
-  // Photo handlers
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const dataUrl = reader.result as string;
-      setPhotoUrl(dataUrl);
-      setIsAnalyzingPhoto(true);
-
-      const analysis = await analyzeEvidencePhoto(
-        dataUrl,
-        file.type,
-        category,
-        locationText
-      );
-      setPhotoAnalysis(analysis);
-      setIsAnalyzingPhoto(false);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleSelectPhotoPreset = async (preset: (typeof SAMPLE_PHOTO_PRESETS)[0]) => {
-    setPhotoUrl(preset.dataUrl);
-    setCategory(preset.category);
-    setLocationText(preset.location);
-    setDistrict(preset.district);
-    setCoordinates(preset.coords);
-    setIsAnalyzingPhoto(true);
-
-    const analysis = await analyzeEvidencePhoto(
-      preset.dataUrl,
-      'image/svg+xml',
-      preset.category,
-      preset.location
-    );
-    setPhotoAnalysis(analysis);
-    setIsAnalyzingPhoto(false);
-  };
-
-  // Voice recording handlers
-  const startVoiceRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      audioChunksRef.current = [];
-      const recorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = recorder;
-
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-
-      recorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const url = URL.createObjectURL(audioBlob);
-        setAudioUrl(url);
-        setIsAnalyzingAudio(true);
-
-        const sampleText = additionalNotes
-          ? `${additionalNotes}. Excessive noise audible from street.`
-          : `Excessive loud noise from ${category.toLowerCase()} audible inside apartment bedrooms on ${locationText}.`;
-
-        const analysis = await analyzeEvidenceAudio(sampleText, category, locationText);
-        setAudioAnalysis(analysis);
-        setIsAnalyzingAudio(false);
-
-        // stop all microphone tracks
-        stream.getTracks().forEach((track) => track.stop());
-      };
-
-      recorder.start();
-      setIsRecording(true);
-    } catch {
-      // If microphone access is denied or unavailable, use sample audio
-      handleUseSampleAudio();
-    }
-  };
-
-  const stopVoiceRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
-  };
-
-  const handleUseSampleAudio = async () => {
-    setIsAnalyzingAudio(true);
-    // Create an audio oscillator synthetic tone for playback
-    try {
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(65, audioCtx.currentTime); // 65 Hz bass drone
-      gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-    } catch {
-      // AudioContext unavailable
-    }
-
-    setAudioUrl('sample_audio_clip');
-    const statement = `Loud amplified music with vibrating subwoofers from ${locationText} rattling our windows since 1:00 AM.`;
-    const analysis = await analyzeEvidenceAudio(statement, category, locationText);
-    setAudioAnalysis(analysis);
-    setIsAnalyzingAudio(false);
-  };
-
-  const togglePlayAudio = () => {
-    if (audioElementRef.current) {
-      if (isPlayingAudio) {
-        audioElementRef.current.pause();
-        setIsPlayingAudio(false);
-      } else {
-        audioElementRef.current.play();
-        setIsPlayingAudio(true);
-      }
-    } else {
-      setIsPlayingAudio(!isPlayingAudio);
-      setTimeout(() => setIsPlayingAudio(false), 4000);
-    }
-  };
-
   // Submit report to multi-agent pipeline
   const handleSubmitReport = () => {
     setIsSubmitting(true);
 
-    const fullDescription = additionalNotes
-      ? `${additionalNotes} [Location: ${locationText}, Category: ${category}]`
-      : `Citizen noise report concerning ${category.toLowerCase()} at ${locationText}. Active disturbance: ${
-          isCurrent ? 'Yes' : 'No'
-        }. Recurrent: ${isRecurring ? 'Yes' : 'No'}.`;
+    const timingDetails = [
+      isCurrent ? 'Happening now.' : 'Already stopped.',
+      isRecurring ? 'Recurring problem.' : null,
+    ]
+      .filter(Boolean)
+      .join(' ');
+
+    const fullDescription = additionalNotes.trim()
+      ? `${additionalNotes.trim()} (${timingDetails})`
+      : `Citizen noise report concerning ${category.toLowerCase()} at ${locationText}. ${timingDetails}`;
 
     setTimeout(() => {
       const newId = submitReport(
@@ -342,10 +176,6 @@ const CitizenPortal: React.FC = () => {
         district,
         category,
         {
-          photoUrl: photoUrl || undefined,
-          photoAnalysis: photoAnalysis || undefined,
-          audioUrl: audioUrl || undefined,
-          audioAnalysis: audioAnalysis || undefined,
           isCurrent,
           isRecurring,
         }
@@ -354,7 +184,7 @@ const CitizenPortal: React.FC = () => {
       setSubmittedTicketId(newId);
       setIsSubmitting(false);
       setCurrentStep(5); // Show success & pipeline tracking screen
-    }, 1200);
+    }, 900);
   };
 
   // User's submitted reports list
@@ -406,7 +236,7 @@ const CitizenPortal: React.FC = () => {
       <main className="w-full max-w-xl flex-1 flex flex-col">
         <AnimatePresence mode="wait">
           {/* ========================================================================= */}
-          {/* VIEW 0: LANDING SCREEN (Matching Screenshot 1: media_1795357620655_21e34c19) */}
+          {/* VIEW 0: LANDING SCREEN (Matching Joao Prototype Screen 1)                 */}
           {/* ========================================================================= */}
           {currentStep === 0 && (
             <motion.div
@@ -440,7 +270,7 @@ const CitizenPortal: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setCurrentStep(1)}
-                  className="w-full py-4 px-6 rounded-2xl bg-white hover:bg-gray-100 text-slate-900 font-extrabold text-base transition-all shadow-xl active:scale-[0.99] flex items-center justify-center space-x-2"
+                  className="w-full py-4 px-6 rounded-2xl bg-white hover:bg-gray-100 text-slate-900 font-extrabold text-base transition-all shadow-xl active:scale-[0.99] flex items-center justify-center space-x-2 cursor-pointer"
                 >
                   <span>Report noise</span>
                 </button>
@@ -508,7 +338,7 @@ const CitizenPortal: React.FC = () => {
           )}
 
           {/* ========================================================================= */}
-          {/* STEP 1 OF 4: WHAT KIND OF NOISE? (Screenshot 2: media_1795357629721_399733f3) */}
+          {/* STEP 1 OF 4: WHAT KIND OF NOISE? (Matching Joao Prototype Step 1)         */}
           {/* ========================================================================= */}
           {currentStep === 1 && (
             <motion.div
@@ -523,7 +353,7 @@ const CitizenPortal: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setCurrentStep(0)}
-                  className="flex items-center space-x-1.5 text-xs text-gray-400 hover:text-white transition-colors font-medium"
+                  className="flex items-center space-x-1.5 text-xs text-gray-400 hover:text-white transition-colors font-medium cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   <span>Step 1 of 4</span>
@@ -538,38 +368,7 @@ const CitizenPortal: React.FC = () => {
 
               {/* Category Options */}
               <div className="space-y-3">
-                {[
-                  {
-                    id: 'Bar, club or venue',
-                    title: 'Bar, club or venue',
-                    desc: 'Loud music, crowds at the door',
-                    icon: Music,
-                  },
-                  {
-                    id: 'Terrace',
-                    title: 'Terrace',
-                    desc: 'Outdoor seating too loud or open late',
-                    icon: UtensilsCrossed,
-                  },
-                  {
-                    id: 'Neighbor or party',
-                    title: 'Neighbor or party',
-                    desc: 'A flat, rooftop or private gathering',
-                    icon: PartyPopper,
-                  },
-                  {
-                    id: 'Construction or works',
-                    title: 'Construction or works',
-                    desc: 'Drilling, machinery, roadworks',
-                    icon: HardHat,
-                  },
-                  {
-                    id: 'Traffic',
-                    title: 'Traffic',
-                    desc: 'Horns, engines, motorbikes',
-                    icon: Car,
-                  },
-                ].map((item) => {
+                {CATEGORIES.map((item) => {
                   const isSelected = category === item.id;
                   const Icon = item.icon;
                   return (
@@ -577,7 +376,7 @@ const CitizenPortal: React.FC = () => {
                       key={item.id}
                       onClick={() => {
                         setCategory(item.id);
-                        setTimeout(() => setCurrentStep(2), 250);
+                        setTimeout(() => setCurrentStep(2), 200);
                       }}
                       className={`p-4 rounded-2xl border transition-all cursor-pointer flex items-center space-x-4 ${
                         isSelected
@@ -606,7 +405,7 @@ const CitizenPortal: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setCurrentStep(2)}
-                className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-sm transition-all"
+                className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-sm transition-all cursor-pointer"
               >
                 Continue
               </button>
@@ -614,7 +413,7 @@ const CitizenPortal: React.FC = () => {
           )}
 
           {/* ========================================================================= */}
-          {/* STEP 2 OF 4: WHERE IS IT COMING FROM? (Screenshot 3: media_1795357639569_ed118b47) */}
+          {/* STEP 2 OF 4: WHERE IS IT COMING FROM? (Matching Joao Prototype Step 2)    */}
           {/* ========================================================================= */}
           {currentStep === 2 && (
             <motion.div
@@ -629,7 +428,7 @@ const CitizenPortal: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setCurrentStep(1)}
-                  className="flex items-center space-x-1.5 text-xs text-gray-400 hover:text-white transition-colors font-medium"
+                  className="flex items-center space-x-1.5 text-xs text-gray-400 hover:text-white transition-colors font-medium cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   <span>Step 2 of 4</span>
@@ -646,7 +445,7 @@ const CitizenPortal: React.FC = () => {
               <button
                 type="button"
                 onClick={handleUseCurrentLocation}
-                className="w-full py-3 px-4 rounded-xl border border-blue-500/40 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-xs font-bold flex items-center justify-center space-x-2 transition-all shadow-sm"
+                className="w-full py-3 px-4 rounded-xl border border-blue-500/40 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-xs font-bold flex items-center justify-center space-x-2 transition-all shadow-sm cursor-pointer"
               >
                 <LocateFixed className="w-4 h-4" />
                 <span>Use my current location</span>
@@ -714,7 +513,7 @@ const CitizenPortal: React.FC = () => {
                       setDistrict(s.dist);
                       setCoordinates(s.coords);
                     }}
-                    className="text-[11px] font-medium px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 border border-white/5 transition-all"
+                    className="text-[11px] font-medium px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-gray-300 border border-white/5 transition-all cursor-pointer"
                   >
                     {s.name}
                   </button>
@@ -724,7 +523,7 @@ const CitizenPortal: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setCurrentStep(3)}
-                className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-sm transition-all"
+                className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-sm transition-all cursor-pointer"
               >
                 Continue
               </button>
@@ -732,7 +531,7 @@ const CitizenPortal: React.FC = () => {
           )}
 
           {/* ========================================================================= */}
-          {/* STEP 3 OF 4: TELL US A BIT MORE (Screenshot 4: media_1795357660753_561d63df) */}
+          {/* STEP 3 OF 4: TELL US A BIT MORE (Matching Joao Prototype Step 3)          */}
           {/* ========================================================================= */}
           {currentStep === 3 && (
             <motion.div
@@ -747,7 +546,7 @@ const CitizenPortal: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setCurrentStep(2)}
-                  className="flex items-center space-x-1.5 text-xs text-gray-400 hover:text-white transition-colors font-medium"
+                  className="flex items-center space-x-1.5 text-xs text-gray-400 hover:text-white transition-colors font-medium cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   <span>Step 3 of 4</span>
@@ -769,7 +568,7 @@ const CitizenPortal: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setIsCurrent(true)}
-                    className={`py-3.5 px-4 rounded-xl text-sm font-bold border transition-all ${
+                    className={`py-3.5 px-4 rounded-xl text-sm font-bold border transition-all cursor-pointer ${
                       isCurrent
                         ? 'bg-blue-600 text-white border-blue-500 shadow-md'
                         : 'bg-[#0f172a] text-gray-400 border-[#1e293b] hover:text-white'
@@ -780,7 +579,7 @@ const CitizenPortal: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setIsCurrent(false)}
-                    className={`py-3.5 px-4 rounded-xl text-sm font-bold border transition-all ${
+                    className={`py-3.5 px-4 rounded-xl text-sm font-bold border transition-all cursor-pointer ${
                       !isCurrent
                         ? 'bg-blue-600 text-white border-blue-500 shadow-md'
                         : 'bg-[#0f172a] text-gray-400 border-[#1e293b] hover:text-white'
@@ -800,7 +599,7 @@ const CitizenPortal: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setIsRecurring(true)}
-                    className={`py-3.5 px-4 rounded-xl text-sm font-bold border transition-all ${
+                    className={`py-3.5 px-4 rounded-xl text-sm font-bold border transition-all cursor-pointer ${
                       isRecurring
                         ? 'bg-blue-600 text-white border-blue-500 shadow-md'
                         : 'bg-[#0f172a] text-gray-400 border-[#1e293b] hover:text-white'
@@ -811,7 +610,7 @@ const CitizenPortal: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setIsRecurring(false)}
-                    className={`py-3.5 px-4 rounded-xl text-sm font-bold border transition-all ${
+                    className={`py-3.5 px-4 rounded-xl text-sm font-bold border transition-all cursor-pointer ${
                       !isRecurring
                         ? 'bg-blue-600 text-white border-blue-500 shadow-md'
                         : 'bg-[#0f172a] text-gray-400 border-[#1e293b] hover:text-white'
@@ -839,15 +638,15 @@ const CitizenPortal: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setCurrentStep(4)}
-                className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-sm transition-all"
+                className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-sm transition-all cursor-pointer"
               >
-                Continue to Evidence & AI
+                Continue
               </button>
             </motion.div>
           )}
 
           {/* ========================================================================= */}
-          {/* STEP 4 OF 4: EVIDENCE & GEMINI MULTIMODAL AI (NEW FEATURE REQUESTED!) */}
+          {/* STEP 4 OF 4: CHECK AND SEND (Matching Joao Prototype Step 4 Exactly)      */}
           {/* ========================================================================= */}
           {currentStep === 4 && (
             <motion.div
@@ -862,7 +661,7 @@ const CitizenPortal: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setCurrentStep(3)}
-                  className="flex items-center space-x-1.5 text-xs text-gray-400 hover:text-white transition-colors font-medium"
+                  className="flex items-center space-x-1.5 text-xs text-gray-400 hover:text-white transition-colors font-medium cursor-pointer"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   <span>Step 4 of 4</span>
@@ -870,307 +669,84 @@ const CitizenPortal: React.FC = () => {
                 <div className="w-full bg-gray-800 h-1.5 rounded-full overflow-hidden">
                   <div className="bg-blue-600 h-full w-full rounded-full transition-all duration-300"></div>
                 </div>
-                <div className="flex items-center space-x-2 pt-2">
-                  <h2 className="text-2xl font-black text-white tracking-tight">
-                    Evidence & Multimodal AI
-                  </h2>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                    Gemini 1.5
-                  </span>
-                </div>
-                <p className="text-xs text-gray-400 leading-relaxed">
-                  Attach an evidence photo and record a voice statement. Gemini multimodal AI
-                  analyzes crowd density, outdoor speakers, and acoustic intensity.
+                <h2 className="text-2xl font-black text-white tracking-tight pt-2">
+                  Check and send
+                </h2>
+              </div>
+
+              {/* Review Summary Cards matching Joao prototype */}
+              <div className="space-y-3">
+                {[
+                  {
+                    label: 'Type',
+                    value: category,
+                    step: 1,
+                  },
+                  {
+                    label: 'Location',
+                    value: `${locationText.trim() || 'Pinned on map'}, ${district}`,
+                    step: 2,
+                  },
+                  {
+                    label: 'Details',
+                    value:
+                      [
+                        isCurrent ? 'Happening now' : 'Already stopped',
+                        isRecurring === true ? 'happens often' : isRecurring === false ? 'first time' : null,
+                      ]
+                        .filter(Boolean)
+                        .join(', ') + (additionalNotes.trim() ? ` · "${additionalNotes.trim()}"` : ''),
+                    step: 3,
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className="flex items-start justify-between p-4 rounded-2xl bg-[#0f172a] border border-[#1e293b]"
+                  >
+                    <div className="flex-1 min-w-0 pr-3">
+                      <p className="text-xs font-semibold text-gray-400 mb-0.5">{item.label}</p>
+                      <p className="text-sm text-white font-medium break-words">{item.value}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setCurrentStep(item.step)}
+                      aria-label={`Edit ${item.label.toLowerCase()}`}
+                      className="p-2 -mr-1 rounded-xl text-gray-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+                    >
+                      <Pencil className="w-4 h-4 text-blue-400" />
+                    </button>
+                  </div>
+                ))}
+
+                <p className="text-xs text-gray-400 leading-relaxed pt-2">
+                  Your report is anonymous. The pinned location is shared with municipal inspectors so they can find the source.
                 </p>
               </div>
 
-              {/* 1. PHOTO EVIDENCE SECTION */}
-              <div className="bg-[#0f172a] border border-[#1e293b] rounded-2xl p-5 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-white flex items-center">
-                    <Camera className="w-4 h-4 mr-2 text-blue-400" />
-                    <span>Photo Evidence</span>
-                  </h3>
-                  {photoUrl && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setPhotoUrl(null);
-                        setPhotoAnalysis(null);
-                      }}
-                      className="text-xs text-red-400 hover:text-red-300 font-semibold"
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-
-                {photoUrl ? (
-                  <div className="space-y-3">
-                    <div className="relative rounded-xl overflow-hidden border border-white/10 max-h-48 bg-black flex items-center justify-center">
-                      <img
-                        src={photoUrl}
-                        alt="Evidence"
-                        className="w-full h-48 object-cover"
-                      />
-                      {isAnalyzingPhoto && (
-                        <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center space-y-2">
-                          <div className="w-6 h-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-                          <span className="text-xs font-mono text-blue-300 animate-pulse">
-                            Gemini Vision scanning photo...
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    {photoAnalysis && (
-                      <div className="p-3 bg-blue-950/30 border border-blue-500/20 rounded-xl space-y-2 text-xs">
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-blue-300 flex items-center">
-                            <Sparkles className="w-3.5 h-3.5 mr-1" />
-                            Gemini Vision Findings
-                          </span>
-                          <span className="font-mono text-[10px] text-emerald-400 font-bold">
-                            {photoAnalysis.confidence}% Conf.
-                          </span>
-                        </div>
-                        <p className="text-gray-300 text-[11px] leading-relaxed">
-                          {photoAnalysis.summary}
-                        </p>
-                        <div className="flex flex-wrap gap-1">
-                          {photoAnalysis.tags.map((tag, idx) => (
-                            <span
-                              key={idx}
-                              className="text-[9px] font-mono px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 font-bold"
-                            >
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-2 gap-2">
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/*"
-                        capture="environment"
-                        onChange={handlePhotoUpload}
-                        className="hidden"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="py-3 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold flex items-center justify-center space-x-1.5 transition-all"
-                      >
-                        <Camera className="w-4 h-4 text-blue-400" />
-                        <span>Take / Upload Photo</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => handleSelectPhotoPreset(SAMPLE_PHOTO_PRESETS[0])}
-                        className="py-3 px-3 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-300 text-xs font-bold flex items-center justify-center space-x-1.5 transition-all"
-                      >
-                        <Sparkles className="w-4 h-4 text-blue-400" />
-                        <span>Use Madrid Scene</span>
-                      </button>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-1">
-                      <span className="text-[10px] text-gray-500 uppercase tracking-wider">
-                        Presets for testing:
-                      </span>
-                      <div className="flex space-x-1">
-                        {SAMPLE_PHOTO_PRESETS.map((p) => (
-                          <button
-                            key={p.id}
-                            type="button"
-                            onClick={() => handleSelectPhotoPreset(p)}
-                            className="text-[10px] px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white border border-white/5"
-                          >
-                            {p.id}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* 2. VOICE & ACOUSTIC RECORDING SECTION */}
-              <div className="bg-[#0f172a] border border-[#1e293b] rounded-2xl p-5 space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-white flex items-center">
-                    <Mic className="w-4 h-4 mr-2 text-purple-400" />
-                    <span>Voice Statement & Audio Footprint</span>
-                  </h3>
-                  {audioUrl && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAudioUrl(null);
-                        setAudioAnalysis(null);
-                      }}
-                      className="text-xs text-red-400 hover:text-red-300 font-semibold"
-                    >
-                      Clear
-                    </button>
-                  )}
-                </div>
-
-                {isRecording ? (
-                  <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-4 h-4 rounded-full bg-red-500 animate-ping"></div>
-                      <span className="text-xs font-mono font-bold text-red-300">
-                        Recording Noise: 00:{recordingSeconds < 10 ? `0${recordingSeconds}` : recordingSeconds} / 00:30
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={stopVoiceRecording}
-                      className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white text-xs font-bold flex items-center space-x-1"
-                    >
-                      <Square className="w-3.5 h-3.5 fill-current" />
-                      <span>Stop</span>
-                    </button>
-                  </div>
-                ) : audioUrl ? (
-                  <div className="space-y-3">
-                    <div className="p-3 bg-black/40 border border-white/10 rounded-xl flex items-center justify-between">
-                      <button
-                        type="button"
-                        onClick={togglePlayAudio}
-                        className="w-9 h-9 rounded-full bg-purple-600 hover:bg-purple-500 text-white flex items-center justify-center transition-all shadow-md"
-                      >
-                        {isPlayingAudio ? (
-                          <Pause className="w-4 h-4" />
-                        ) : (
-                          <Play className="w-4 h-4 ml-0.5" />
-                        )}
-                      </button>
-                      <div className="flex-1 mx-3 flex items-center space-x-1">
-                        {[40, 70, 90, 60, 80, 50, 95, 85, 45, 65, 75, 55, 90, 60].map((h, i) => (
-                          <div
-                            key={i}
-                            className={`flex-1 rounded-full transition-all ${
-                              isPlayingAudio ? 'bg-purple-400 animate-pulse' : 'bg-gray-600'
-                            }`}
-                            style={{ height: `${h / 3}px` }}
-                          ></div>
-                        ))}
-                      </div>
-                      <span className="text-[11px] font-mono text-gray-400">Audio Clip</span>
-                    </div>
-
-                    {isAnalyzingAudio && (
-                      <div className="p-3 bg-purple-950/20 border border-purple-500/20 rounded-xl flex items-center space-x-2 text-xs text-purple-300">
-                        <div className="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin"></div>
-                        <span>Gemini Acoustic Engine analyzing sound frequency...</span>
-                      </div>
-                    )}
-
-                    {audioAnalysis && !isAnalyzingAudio && (
-                      <div className="p-3 bg-purple-950/30 border border-purple-500/20 rounded-xl space-y-1.5 text-xs">
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-purple-300 flex items-center">
-                            <Sparkles className="w-3.5 h-3.5 mr-1" />
-                            Acoustic & Voice Classification
-                          </span>
-                          <span className="font-mono text-[10px] text-amber-300 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">
-                            ~{audioAnalysis.estimatedDb} dBA Perceptual
-                          </span>
-                        </div>
-                        <p className="text-gray-300 text-[11px] italic">
-                          "{audioAnalysis.transcript}"
-                        </p>
-                        <p className="text-[10px] text-gray-400">
-                          {audioAnalysis.acousticSummary}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={startVoiceRecording}
-                      className="py-3 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold flex items-center justify-center space-x-1.5 transition-all text-gray-200"
-                    >
-                      <Mic className="w-4 h-4 text-purple-400" />
-                      <span>Record Audio (Mic)</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={handleUseSampleAudio}
-                      className="py-3 px-3 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs font-bold flex items-center justify-center space-x-1.5 transition-all"
-                    >
-                      <Sparkles className="w-4 h-4 text-purple-400" />
-                      <span>Use Sample Audio</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* 3. INTAKE IDENTITY MODE */}
-              <div className="bg-[#0f172a] border border-[#1e293b] rounded-2xl p-4 space-y-3">
-                <span className="text-xs font-bold text-gray-300 block">
-                  Reporting Mode & Privacy
-                </span>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIntakeMode('anonymous')}
-                    className={`py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center space-x-1.5 transition-all ${
-                      intakeMode === 'anonymous'
-                        ? 'bg-blue-600/20 text-blue-300 border border-blue-500/40 shadow-sm'
-                        : 'bg-white/5 text-gray-400 hover:text-white'
-                    }`}
-                  >
-                    <HelpCircle className="w-3.5 h-3.5" />
-                    <span>Anonymous (Quick)</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIntakeMode('formal_denuncia')}
-                    className={`py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center space-x-1.5 transition-all ${
-                      intakeMode === 'formal_denuncia'
-                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
-                        : 'bg-white/5 text-gray-400 hover:text-white'
-                    }`}
-                  >
-                    <UserCheck className="w-3.5 h-3.5" />
-                    <span>Cl@ve e-ID (Formal)</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* SUBMIT BUTTON */}
+              {/* Primary Send Button */}
               <button
                 type="button"
                 disabled={isSubmitting}
                 onClick={handleSubmitReport}
-                className="w-full py-4 bg-white hover:bg-gray-100 text-slate-900 rounded-2xl font-black text-base transition-all shadow-xl disabled:opacity-50 flex items-center justify-center space-x-2"
+                className="w-full min-h-14 py-4 px-6 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-base transition-all shadow-xl active:scale-[0.99] flex items-center justify-center space-x-2 disabled:opacity-50 cursor-pointer"
               >
                 {isSubmitting ? (
                   <>
-                    <div className="w-5 h-5 border-2 border-slate-900 border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     <span>Correlating with Madrid SIVCA Network...</span>
                   </>
                 ) : (
-                  <span>Submit Noise Report</span>
+                  <>
+                    <span>Send report</span>
+                    <Send className="w-4 h-4" />
+                  </>
                 )}
               </button>
             </motion.div>
           )}
 
           {/* ========================================================================= */}
-          {/* VIEW 5: SUBMISSION CONFIRMATION & REAL-TIME MULTI-AGENT TRACKING */}
+          {/* VIEW 5: SUBMISSION CONFIRMATION & REAL-TIME MULTI-AGENT TRACKING          */}
           {/* ========================================================================= */}
           {currentStep === 5 && (
             <motion.div
@@ -1199,7 +775,7 @@ const CitizenPortal: React.FC = () => {
               {/* Multi-Agent Pipeline Stepper */}
               <div className="bg-[#0f172a] border border-[#1e293b] rounded-2xl p-5 space-y-4">
                 <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center">
-                  <Sparkles className="w-4 h-4 mr-1.5 text-blue-400" />
+                  <Shield className="w-4 h-4 mr-1.5 text-blue-400" />
                   <span>Multi-Agent Triage Progression</span>
                 </h3>
 
@@ -1210,11 +786,9 @@ const CitizenPortal: React.FC = () => {
                       ✓
                     </div>
                     <div>
-                      <strong className="text-white">Chulapo Intake & Multimodal AI</strong>
+                      <strong className="text-white">Chulapo Intake</strong>
                       <p className="text-gray-400 text-[11px]">
-                        Structured entity extracted for {locationText} ({district}).
-                        {photoAnalysis && ' Gemini Vision corroborated visual evidence.'}
-                        {audioAnalysis && ' Gemini Audio estimated perceptual footprint.'}
+                        Structured entity extracted for {locationText} ({district}). Anonymous citizen reporting mode active.
                       </p>
                     </div>
                   </div>
@@ -1272,7 +846,7 @@ const CitizenPortal: React.FC = () => {
                     }
                     setCurrentAppView('command_center');
                   }}
-                  className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold text-sm transition-all shadow-xl flex items-center justify-center space-x-2"
+                  className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold text-sm transition-all shadow-xl flex items-center justify-center space-x-2 cursor-pointer"
                 >
                   <span>Open in Municipal Command Center (Watch Live Triage)</span>
                   <ExternalLink className="w-4 h-4" />
@@ -1282,13 +856,9 @@ const CitizenPortal: React.FC = () => {
                   type="button"
                   onClick={() => {
                     setCurrentStep(0);
-                    setPhotoUrl(null);
-                    setPhotoAnalysis(null);
-                    setAudioUrl(null);
-                    setAudioAnalysis(null);
                     setAdditionalNotes('');
                   }}
-                  className="w-full py-3 bg-white/5 hover:bg-white/10 text-gray-300 rounded-xl font-semibold text-xs transition-all"
+                  className="w-full py-3 bg-white/5 hover:bg-white/10 text-gray-300 rounded-xl font-semibold text-xs transition-all cursor-pointer"
                 >
                   Back to My Reports
                 </button>
@@ -1321,7 +891,7 @@ const CitizenPortal: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setSelectedReportDetail(null)}
-                  className="p-1.5 rounded-full hover:bg-white/10 text-gray-400 hover:text-white"
+                  className="p-1.5 rounded-full hover:bg-white/10 text-gray-400 hover:text-white cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -1376,7 +946,7 @@ const CitizenPortal: React.FC = () => {
                     setSelectedReportDetail(null);
                     setCurrentAppView('command_center');
                   }}
-                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-xs transition-all flex items-center justify-center space-x-1.5"
+                  className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-xs transition-all flex items-center justify-center space-x-1.5 cursor-pointer"
                 >
                   <span>Inspect in Municipal Command Center</span>
                   <ExternalLink className="w-3.5 h-3.5" />

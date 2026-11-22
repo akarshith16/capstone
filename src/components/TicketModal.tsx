@@ -15,10 +15,6 @@ import {
   Clock,
   Layers,
   Edit3,
-  Camera,
-  Mic,
-  Sparkles,
-  Volume2,
 } from 'lucide-react';
 import {
   LineChart,
@@ -288,109 +284,6 @@ const TicketModal: React.FC = () => {
                   </p>
                 </div>
               </div>
-
-              {/* Multimodal Gemini Evidence Card (Photo & Audio) */}
-              {(activeIncident.photoUrl ||
-                activeIncident.photoAnalysis ||
-                activeIncident.audioUrl ||
-                activeIncident.audioAnalysis) && (
-                <div className="bg-gradient-to-r from-blue-950/30 via-purple-950/20 to-transparent border border-blue-500/30 rounded-2xl p-6 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-bold text-blue-300 uppercase tracking-widest flex items-center">
-                      <Sparkles className="w-4 h-4 mr-2 text-blue-400" />
-                      Citizen Multimodal Evidence (Gemini 1.5 Flash)
-                    </h3>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 font-bold">
-                      Verified Uploads
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Photo Evidence Card */}
-                    {(activeIncident.photoUrl || activeIncident.photoAnalysis) && (
-                      <div className="bg-black/50 border border-white/10 rounded-xl p-3.5 space-y-2">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="font-bold text-gray-200 flex items-center">
-                            <Camera className="w-3.5 h-3.5 mr-1.5 text-blue-400" />
-                            Visual Verification
-                          </span>
-                          {activeIncident.photoAnalysis?.confidence && (
-                            <span className="font-mono text-[10px] text-emerald-400 font-bold">
-                              {activeIncident.photoAnalysis.confidence}% Match
-                            </span>
-                          )}
-                        </div>
-
-                        {activeIncident.photoUrl && (
-                          <div className="rounded-lg overflow-hidden border border-white/10 max-h-36 bg-black flex items-center justify-center">
-                            <img
-                              src={activeIncident.photoUrl}
-                              alt="Evidence Snapshot"
-                              className="w-full h-36 object-cover"
-                            />
-                          </div>
-                        )}
-
-                        {activeIncident.photoAnalysis && (
-                          <div className="space-y-1.5">
-                            <p className="text-[11px] text-gray-300 leading-relaxed">
-                              {activeIncident.photoAnalysis.summary}
-                            </p>
-                            <div className="flex flex-wrap gap-1">
-                              {activeIncident.photoAnalysis.tags.map((tag, idx) => (
-                                <span
-                                  key={idx}
-                                  className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 font-bold"
-                                >
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Audio Evidence Card */}
-                    {(activeIncident.audioUrl || activeIncident.audioAnalysis) && (
-                      <div className="bg-black/50 border border-white/10 rounded-xl p-3.5 space-y-2 flex flex-col justify-between">
-                        <div>
-                          <div className="flex items-center justify-between text-xs mb-2">
-                            <span className="font-bold text-gray-200 flex items-center">
-                              <Mic className="w-3.5 h-3.5 mr-1.5 text-purple-400" />
-                              Acoustic Statement
-                            </span>
-                            {activeIncident.audioAnalysis?.estimatedDb && (
-                              <span className="font-mono text-[10px] text-amber-300 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">
-                                ~{activeIncident.audioAnalysis.estimatedDb} dBA Perceived
-                              </span>
-                            )}
-                          </div>
-
-                          {activeIncident.audioAnalysis?.transcript && (
-                            <p className="text-[11px] text-gray-300 italic mb-2">
-                              "{activeIncident.audioAnalysis.transcript}"
-                            </p>
-                          )}
-
-                          {activeIncident.audioAnalysis?.acousticSummary && (
-                            <p className="text-[10px] text-gray-400">
-                              {activeIncident.audioAnalysis.acousticSummary}
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="p-2.5 bg-white/5 rounded-lg border border-white/5 flex items-center space-x-2 text-xs text-purple-300">
-                          <Volume2 className="w-4 h-4 text-purple-400 shrink-0" />
-                          <span className="text-[10px] truncate">
-                            {activeIncident.audioAnalysis?.tone || 'Citizen voice statement recorded and analyzed'}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
 
               {/* Acoustic Telemetry Card */}
               <div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-4">
