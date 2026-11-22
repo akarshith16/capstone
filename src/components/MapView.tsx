@@ -136,7 +136,8 @@ const MapView: React.FC = () => {
           </Marker>
         ))}
 
-        {filteredIncidents.map((incident) => (
+        {/* Render the active operational queue (top 120 recent/active incidents) for optimal map performance & clarity */}
+        {filteredIncidents.slice(0, 120).map((incident) => (
           <Marker
             key={incident.id}
             position={incident.coordinates}

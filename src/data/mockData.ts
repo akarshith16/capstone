@@ -44,6 +44,19 @@ export interface BaselineComparisonData {
   enrichmentDiffSummary: string;
 }
 
+export interface IncidentPhotoAnalysis {
+  summary: string;
+  tags: string[];
+  confidence: number;
+}
+
+export interface IncidentAudioAnalysis {
+  transcript: string;
+  acousticSummary: string;
+  estimatedDb: number;
+  tone?: string;
+}
+
 export interface Incident {
   id: string;
   timestamp: string;
@@ -57,6 +70,12 @@ export interface Incident {
   status: IncidentStatus;
   category: string;
   eventContext?: string;
+  photoUrl?: string;
+  photoAnalysis?: IncidentPhotoAnalysis;
+  audioUrl?: string;
+  audioAnalysis?: IncidentAudioAnalysis;
+  isCurrent?: boolean;
+  isRecurring?: boolean;
   sensorVerification?: SensorVerificationData;
   officerReview?: OfficerReviewData;
   baselineComparison?: BaselineComparisonData;
@@ -124,11 +143,18 @@ export const generateMockIncidents = (): Incident[] => {
       eventContext = possibleEvents[0].name;
     }
 
-    // Pseudo-deterministic coordinates based on index i
-    const angle = (i * 0.618033) * 2 * Math.PI;
-    const radius = 0.005 + ((i % 100) / 100) * 0.015;
-    const lat = districtInfo.coords[0] + Math.sin(angle) * radius;
-    const lng = districtInfo.coords[1] + Math.cos(angle) * radius;
+    // Natural urban street scattering across Madrid district corridors (eliminates artificial spiral rings)
+    // Deterministic pseudo-random seed based on index i to guarantee reproducible testing
+    const hash1 = Math.sin(i * 12.9898 + 78.233) * 43758.5453;
+    const u1 = hash1 - Math.floor(hash1);
+    const hash2 = Math.sin(i * 39.346 + 11.135) * 24634.6345;
+    const u2 = hash2 - Math.floor(hash2);
+
+    // Natural Gaussian distribution clustering around neighborhood corridors
+    const r = Math.sqrt(-2.0 * Math.log(Math.max(0.01, u1))) * 0.007;
+    const theta = 2.0 * Math.PI * u2;
+    const lat = districtInfo.coords[0] + r * Math.sin(theta);
+    const lng = districtInfo.coords[1] + (r * 1.25) * Math.cos(theta);
 
     const nearestLookup = findNearestSivcaStation([lat, lng]);
     const nearest = nearestLookup.station;
@@ -243,6 +269,81 @@ export const generateMockIncidents = (): Incident[] => {
       ],
     });
   }
+
+  // Seed two citizen reports matching the landing screen "Your reports" in user's design
+  const userReport1: Incident = {
+    id: 'REQ-2026-0412',
+    timestamp: '2026-11-16T23:45:00.000Z',
+    location: 'Calle de Serrano 42, Salamanca',
+    district: 'Salamanca',
+    coordinates: [40.4285, -3.6872],
+    description: 'Loud music, crowds at the door spilling into roadway past 02:00 AM.',
+    reporter: 'Citizen (You - Anonymous)',
+    isAnonymous: true,
+    priority: 'High',
+    status: 'Prioritizing',
+    category: 'Bar, club or venue',
+    isCurrent: true,
+    isRecurring: true,
+    photoAnalysis: {
+      summary: 'Patrons gathered on sidewalk outside doorway with sound leakage.',
+      tags: ['DOORWAY QUEUE', 'SIDEWALK OBSTRUCTION'],
+      confidence: 94,
+    },
+    audioAnalysis: {
+      transcript: 'The bass from the basement club has been vibrating our walls since midnight.',
+      acousticSummary: 'Low-frequency bass pulse dominant at ~74 dBA.',
+      estimatedDb: 74.0,
+      tone: 'Distressed resident, recurring weekend disturbance',
+    },
+    agentLogs: [
+      {
+        agent: 'Chulapo',
+        action: 'Structured extraction and multimodal evidence recorded (Anonymous mode).',
+        timestamp: '2026-11-16T23:45:10.000Z',
+      },
+      {
+        agent: 'Sentinel',
+        action: 'Nearest SIVCA SN-MAD-02 (Escuelas Aguirre) at 430m. Historical Ln: 59.8 dBA.',
+        timestamp: '2026-11-16T23:45:20.000Z',
+      },
+      {
+        agent: 'Decider',
+        action: 'Evaluated under OPCAT. Asymmetric priority set to High.',
+        timestamp: '2026-11-16T23:45:30.000Z',
+      },
+    ],
+  };
+
+  const userReport2: Incident = {
+    id: 'REQ-2026-0398',
+    timestamp: '2026-11-16T22:15:00.000Z',
+    location: 'Calle de Velázquez 58, Salamanca',
+    district: 'Salamanca',
+    coordinates: [40.4290, -3.6840],
+    description: 'A flat rooftop party with amplified loudspeakers and shouting.',
+    reporter: 'Citizen (You - Anonymous)',
+    isAnonymous: true,
+    priority: 'Moderate',
+    status: 'Verifying',
+    category: 'Neighbor or party',
+    isCurrent: true,
+    isRecurring: false,
+    agentLogs: [
+      {
+        agent: 'Chulapo',
+        action: 'Structured extraction complete.',
+        timestamp: '2026-11-16T22:15:10.000Z',
+      },
+      {
+        agent: 'Sentinel',
+        action: 'Cross-referencing SIVCA network telemetry.',
+        timestamp: '2026-11-16T22:15:20.000Z',
+      },
+    ],
+  };
+
+  incidents.unshift(userReport1, userReport2);
 
   return incidents.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 };

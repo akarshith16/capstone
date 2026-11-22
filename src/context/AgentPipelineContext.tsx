@@ -7,6 +7,8 @@ import type {
   IncidentStatus,
   VerificationDataMode,
   CitizenIntakeMode,
+  IncidentPhotoAnalysis,
+  IncidentAudioAnalysis,
 } from '../data/mockData';
 import { evaluateTriageCase } from '../utils/triageVerificationSuite';
 
@@ -20,13 +22,25 @@ interface AgentPipelineContextType {
   incidents: Incident[];
   activeIncident: Incident | null;
   setActiveIncident: (incident: Incident | null) => void;
+  currentAppView: 'citizen' | 'command_center';
+  setCurrentAppView: (view: 'citizen' | 'command_center') => void;
+  lastSubmittedTicketId: string | null;
+  setLastSubmittedTicketId: (id: string | null) => void;
   submitReport: (
     reportText: string,
     location: string,
     coordinates: [number, number],
     district: string,
-    category: string
-  ) => void;
+    category: string,
+    multimodal?: {
+      photoUrl?: string;
+      photoAnalysis?: IncidentPhotoAnalysis;
+      audioUrl?: string;
+      audioAnalysis?: IncidentAudioAnalysis;
+      isCurrent?: boolean;
+      isRecurring?: boolean;
+    }
+  ) => string;
   resolveIncident: (id: string, resolutionType: 'warning' | 'fine' | 'seizure') => void;
   officerOverrideIncident: (
     id: string,
@@ -80,6 +94,8 @@ export const AgentPipelineProvider = ({ children }: { children: ReactNode }) => 
   const [incidents, setIncidents] = useState<Incident[]>(initialIncidents);
   const [activeIncident, setActiveIncident] = useState<Incident | null>(null);
   const [citizenFeedback, setCitizenFeedback] = useState<string | null>(null);
+  const [currentAppView, setCurrentAppView] = useState<'citizen' | 'command_center'>('citizen');
+  const [lastSubmittedTicketId, setLastSubmittedTicketId] = useState<string | null>(null);
 
   // Verification & Demo Controls
   const [verificationMode, setVerificationMode] = useState<VerificationDataMode>('historical');
@@ -255,8 +271,16 @@ export const AgentPipelineProvider = ({ children }: { children: ReactNode }) => 
     location: string,
     coordinates: [number, number],
     district: string,
-    category: string
-  ) => {
+    category: string,
+    multimodal?: {
+      photoUrl?: string;
+      photoAnalysis?: IncidentPhotoAnalysis;
+      audioUrl?: string;
+      audioAnalysis?: IncidentAudioAnalysis;
+      isCurrent?: boolean;
+      isRecurring?: boolean;
+    }
+  ): string => {
     const isAnon = intakeMode === 'anonymous';
     const reporter = isAnon
       ? 'Citizen (You - Anonymous)'
@@ -264,6 +288,18 @@ export const AgentPipelineProvider = ({ children }: { children: ReactNode }) => 
 
     const timestamp = new Date().toISOString();
     const newIncidentId = `REQ-${2026}-${Date.now().toString().slice(-4)}`;
+
+    let chulapoAction = `Received report from citizen (${isAnon ? 'Anonymous mode' : 'Authenticated via Cl@ve'}). NLP structured entity extraction complete.`;
+    if (multimodal?.photoAnalysis || multimodal?.audioAnalysis) {
+      const parts: string[] = [];
+      if (multimodal.photoAnalysis) {
+        parts.push(`Gemini Vision: ${multimodal.photoAnalysis.tags.slice(0, 3).join(', ')} (${multimodal.photoAnalysis.confidence}% conf)`);
+      }
+      if (multimodal.audioAnalysis) {
+        parts.push(`Gemini Audio: ~${multimodal.audioAnalysis.estimatedDb} dBA perceptual impact`);
+      }
+      chulapoAction += ` Multimodal verification attached: [${parts.join(' | ')}].`;
+    }
 
     const newIncident: Incident = {
       id: newIncidentId,
@@ -277,15 +313,22 @@ export const AgentPipelineProvider = ({ children }: { children: ReactNode }) => 
       priority: 'Pending',
       status: 'New',
       category,
+      photoUrl: multimodal?.photoUrl,
+      photoAnalysis: multimodal?.photoAnalysis,
+      audioUrl: multimodal?.audioUrl,
+      audioAnalysis: multimodal?.audioAnalysis,
+      isCurrent: multimodal?.isCurrent ?? true,
+      isRecurring: multimodal?.isRecurring ?? false,
       agentLogs: [
         {
           agent: 'Chulapo',
-          action: `Received report from citizen (${isAnon ? 'Anonymous mode' : 'Authenticated via Cl@ve'}). NLP structured entity extraction complete.`,
+          action: chulapoAction,
           timestamp: new Date().toISOString(),
         },
       ],
     };
 
+    setLastSubmittedTicketId(newIncidentId);
     setIncidents((prev) => [newIncident, ...prev]);
 
     // Sentinel step (deterministic verification, zero random numbers)
@@ -376,6 +419,8 @@ export const AgentPipelineProvider = ({ children }: { children: ReactNode }) => 
         }, 1800);
       }, 1800);
     }, 1500);
+
+    return newIncidentId;
   };
 
   return (
@@ -384,6 +429,10 @@ export const AgentPipelineProvider = ({ children }: { children: ReactNode }) => 
         incidents,
         activeIncident,
         setActiveIncident,
+        currentAppView,
+        setCurrentAppView,
+        lastSubmittedTicketId,
+        setLastSubmittedTicketId,
         submitReport,
         resolveIncident,
         officerOverrideIncident,
