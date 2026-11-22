@@ -14,29 +14,45 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-const createCustomIcon = (priority: Incident['priority'], status: Incident['status']) => {
+const iconCache = new Map<string, L.DivIcon>();
+
+const createCustomIcon = (
+  priority: Incident['priority'],
+  status: Incident['status'],
+  isActive: boolean = false
+) => {
+  const cacheKey = `${priority}_${status}_${isActive}`;
+  const cached = iconCache.get(cacheKey);
+  if (cached) return cached;
+
   let color = '#3B82F6';
   if (status === 'Resolved') color = '#6B7280'; // gray when resolved
   else if (priority === 'Critical') color = '#EF4444';
   else if (priority === 'High') color = '#F59E0B';
   else if (priority === 'Moderate') color = '#10B981';
-  
-  const isPending = status !== 'Routed' && status !== 'Resolved';
-  const pulseAnim = isPending ? 'animate-ping' : '';
+
+  const pulseAnim = isActive ? 'animate-ping' : '';
+  const dotSize = isActive ? 'w-4 h-4' : 'w-2 h-2';
 
   const html = `
-    <div class="relative flex items-center justify-center w-6 h-6">
-      <div class="absolute w-full h-full rounded-full opacity-50 ${pulseAnim}" style="background-color: ${color}"></div>
-      <div class="relative w-3 h-3 rounded-full border border-white" style="background-color: ${color}"></div>
+    <div class="relative flex items-center justify-center w-5 h-5">
+      ${
+        isActive
+          ? `<div class="absolute w-full h-full rounded-full opacity-60 ${pulseAnim}" style="background-color: ${color}"></div>`
+          : ''
+      }
+      <div class="relative ${dotSize} rounded-full border border-white/90 shadow-[0_0_6px_rgba(0,0,0,0.8)]" style="background-color: ${color}"></div>
     </div>
   `;
 
-  return L.divIcon({
+  const icon = L.divIcon({
     html,
     className: 'bg-transparent',
-    iconSize: [24, 24],
-    iconAnchor: [12, 12]
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
   });
+  iconCache.set(cacheKey, icon);
+  return icon;
 };
 
 const createSivcaStationIcon = () => {
@@ -137,6 +153,7 @@ const MapView: React.FC = () => {
               key={station.id}
               position={station.coords}
               icon={createSivcaStationIcon()}
+              zIndexOffset={1000}
             >
               <Popup className="custom-sivca-popup">
                 <div className="text-black p-1 text-xs space-y-1">
@@ -166,6 +183,7 @@ const MapView: React.FC = () => {
               key={unit.id}
               position={unit.coords}
               icon={createMobileUmmaIcon()}
+              zIndexOffset={900}
             >
               <Popup className="custom-sivca-popup">
                 <div className="text-black p-1 text-xs space-y-1">
@@ -194,18 +212,22 @@ const MapView: React.FC = () => {
             </Marker>
           ))}
 
-        {/* Render Active Citizen Incidents */}
+        {/* Render Active Citizen Incidents (1,000+ points) */}
         {showIncidents &&
-          filteredIncidents.map((incident) => (
-            <Marker
-              key={incident.id}
-              position={incident.coordinates}
-              icon={createCustomIcon(incident.priority, incident.status)}
-              eventHandlers={{
-                click: () => setActiveIncident(incident),
-              }}
-            />
-          ))}
+          filteredIncidents.map((incident) => {
+            const isActive = activeIncident?.id === incident.id;
+            return (
+              <Marker
+                key={incident.id}
+                position={incident.coordinates}
+                icon={createCustomIcon(incident.priority, incident.status, isActive)}
+                zIndexOffset={isActive ? 850 : 10}
+                eventHandlers={{
+                  click: () => setActiveIncident(incident),
+                }}
+              />
+            );
+          })}
       </MapContainer>
 
       {/* Floating Map Layers Control & Telemetry Legend */}
@@ -248,7 +270,7 @@ const MapView: React.FC = () => {
           <label className="flex items-center justify-between cursor-pointer hover:text-white text-gray-300">
             <div className="flex items-center space-x-2">
               <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_6px_rgba(59,130,246,0.8)]"></span>
-              <span>Citizen Reports ({filteredIncidents.length})</span>
+              <span>Citizen Reports ({filteredIncidents.length.toLocaleString()})</span>
             </div>
             <input
               type="checkbox"

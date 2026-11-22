@@ -87,28 +87,34 @@ export interface Incident {
 }
 
 export const MADRID_DISTRICTS = [
-  { name: 'Centro', coords: [40.418, -3.703] as [number, number] },
-  { name: 'Arganzuela', coords: [40.398, -3.693] as [number, number] },
-  { name: 'Retiro', coords: [40.411, -3.676] as [number, number] },
-  { name: 'Salamanca', coords: [40.428, -3.687] as [number, number] },
-  { name: 'Chamartín', coords: [40.458, -3.677] as [number, number] },
-  { name: 'Tetuán', coords: [40.460, -3.698] as [number, number] },
-  { name: 'Chamberí', coords: [40.434, -3.703] as [number, number] },
-  { name: 'Fuencarral-El Pardo', coords: [40.478, -3.711] as [number, number] },
-  { name: 'Moncloa-Aravaca', coords: [40.435, -3.731] as [number, number] },
-  { name: 'Latina', coords: [40.388, -3.744] as [number, number] },
-  { name: 'Carabanchel', coords: [40.378, -3.743] as [number, number] },
-  { name: 'Usera', coords: [40.383, -3.704] as [number, number] },
-  { name: 'Puente de Vallecas', coords: [40.383, -3.666] as [number, number] },
-  { name: 'Moratalaz', coords: [40.407, -3.645] as [number, number] },
-  { name: 'Ciudad Lineal', coords: [40.445, -3.652] as [number, number] },
-  { name: 'Hortaleza', coords: [40.472, -3.642] as [number, number] },
-  { name: 'Villaverde', coords: [40.345, -3.708] as [number, number] },
-  { name: 'Villa de Vallecas', coords: [40.373, -3.623] as [number, number] },
-  { name: 'Vicálvaro', coords: [40.404, -3.608] as [number, number] },
-  { name: 'San Blas-Canillejas', coords: [40.430, -3.615] as [number, number] },
-  { name: 'Barajas', coords: [40.474, -3.578] as [number, number] },
+  { name: 'Centro', coords: [40.418, -3.703] as [number, number], weight: 3.0 },
+  { name: 'Chamberí', coords: [40.434, -3.703] as [number, number], weight: 2.2 },
+  { name: 'Salamanca', coords: [40.428, -3.687] as [number, number], weight: 2.2 },
+  { name: 'Tetuán', coords: [40.460, -3.698] as [number, number], weight: 1.8 },
+  { name: 'Arganzuela', coords: [40.398, -3.693] as [number, number], weight: 1.5 },
+  { name: 'Retiro', coords: [40.411, -3.676] as [number, number], weight: 1.5 },
+  { name: 'Chamartín', coords: [40.458, -3.677] as [number, number], weight: 1.5 },
+  { name: 'Moncloa-Aravaca', coords: [40.435, -3.731] as [number, number], weight: 1.2 },
+  { name: 'Latina', coords: [40.388, -3.744] as [number, number], weight: 1.1 },
+  { name: 'Carabanchel', coords: [40.378, -3.743] as [number, number], weight: 1.2 },
+  { name: 'Usera', coords: [40.383, -3.704] as [number, number], weight: 1.0 },
+  { name: 'Puente de Vallecas', coords: [40.383, -3.666] as [number, number], weight: 1.2 },
+  { name: 'Moratalaz', coords: [40.407, -3.645] as [number, number], weight: 0.8 },
+  { name: 'Ciudad Lineal', coords: [40.445, -3.652] as [number, number], weight: 1.1 },
+  { name: 'Hortaleza', coords: [40.472, -3.642] as [number, number], weight: 0.9 },
+  { name: 'Fuencarral-El Pardo', coords: [40.478, -3.711] as [number, number], weight: 0.9 },
+  { name: 'Villaverde', coords: [40.345, -3.708] as [number, number], weight: 0.8 },
+  { name: 'Villa de Vallecas', coords: [40.373, -3.623] as [number, number], weight: 0.8 },
+  { name: 'Vicálvaro', coords: [40.404, -3.608] as [number, number], weight: 0.7 },
+  { name: 'San Blas-Canillejas', coords: [40.430, -3.615] as [number, number], weight: 0.8 },
+  { name: 'Barajas', coords: [40.474, -3.578] as [number, number], weight: 0.7 },
 ];
+
+const DISTRICT_POOL: typeof MADRID_DISTRICTS = [];
+MADRID_DISTRICTS.forEach((d) => {
+  const count = Math.round(d.weight * 10);
+  for (let k = 0; k < count; k++) DISTRICT_POOL.push(d);
+});
 
 export const EVENTS = [
   { name: 'Real Madrid Match (Santiago Bernabéu)', district: 'Chamartín', prob: 0.15 },
@@ -133,9 +139,9 @@ export const generateMockIncidents = (): Incident[] => {
     'Private Party',
   ];
 
-  // 45 realistic operational incidents across Madrid districts (uncluttered map with clear station visibility)
-  for (let i = 1; i <= 45; i++) {
-    const districtInfo = MADRID_DISTRICTS[(i * 7) % MADRID_DISTRICTS.length];
+  // 1,000 realistic operational incidents across Madrid districts (natural urban distribution across all 21 districts)
+  for (let i = 1; i <= 1000; i++) {
+    const districtInfo = DISTRICT_POOL[i % DISTRICT_POOL.length];
 
     let eventContext = undefined;
     const possibleEvents = EVENTS.filter((e) => e.district === districtInfo.name);
@@ -143,18 +149,18 @@ export const generateMockIncidents = (): Incident[] => {
       eventContext = possibleEvents[0].name;
     }
 
-    // Natural urban street scattering across Madrid district corridors (eliminates artificial spiral rings)
-    // Deterministic pseudo-random seed based on index i to guarantee reproducible testing
-    const hash1 = Math.sin(i * 12.9898 + 78.233) * 43758.5453;
+    // High quality deterministic pseudo-random generator (eliminates artificial concentric rings)
+    const hash1 = Math.sin(i * 127.1 + 311.7) * 43758.5453123;
     const u1 = hash1 - Math.floor(hash1);
-    const hash2 = Math.sin(i * 39.346 + 11.135) * 24634.6345;
+    const hash2 = Math.sin(i * 269.5 + 183.3) * 43758.5453123;
     const u2 = hash2 - Math.floor(hash2);
 
-    // Natural Gaussian distribution clustering around neighborhood corridors
-    const r = Math.sqrt(-2.0 * Math.log(Math.max(0.01, u1))) * 0.007;
+    // Natural Box-Muller Gaussian bivariate distribution clustering along neighborhood street corridors
+    const sigma = 0.0068;
+    const r = Math.sqrt(-2.0 * Math.log(Math.max(0.0001, u1))) * sigma;
     const theta = 2.0 * Math.PI * u2;
     const lat = districtInfo.coords[0] + r * Math.sin(theta);
-    const lng = districtInfo.coords[1] + (r * 1.25) * Math.cos(theta);
+    const lng = districtInfo.coords[1] + (r * 1.3) * Math.cos(theta);
 
     const nearestLookup = findNearestSivcaStation([lat, lng]);
     const nearest = nearestLookup.station;
